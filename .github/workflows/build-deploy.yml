@@ -1,0 +1,65 @@
+name: Vercel Build & Deploy
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build-and-deploy:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set DATABASE_URL
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}" >> $GITHUB_ENV
+          else
+            echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
+          fi
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run ESLint
+        run: npx eslint . --max-warnings=0
+
+      - name: Build project
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+      - name: Install Vercel CLI
+        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+        run: npm install -g vercel
+
+      # Deploy to Vercel Production
+      - name: Deploy to Vercel (Production)
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel --prod --yes --token=$VERCEL_TOKEN
+
+      # Deploy to Vercel Preview
+      - name: Deploy to Vercel (Preview)
+        if: ${{ github.ref == 'refs/heads/develop' && github.event_name == 'push' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel --yes --token=$VERCEL_TOKEN

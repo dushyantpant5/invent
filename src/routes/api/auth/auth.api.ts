@@ -1,11 +1,8 @@
-import { createApiClient } from "@/routes/lib/createApiClient";
+import { createApiClient } from '@/routes/lib/createApiClient';
 
-const authClient = createApiClient("/auth");
+const authClient = createApiClient('/auth');
 
-export const signUp = async (
-  email: string,
-  password: string
-): Promise<void> => {
+export const signUp = async (email: string, password: string): Promise<void> => {
   const data = { email, password };
-  await authClient.post("/signup", data);
+  await authClient.post('/signup', data);
 };
