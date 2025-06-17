@@ -1,4 +1,4 @@
-import { IProductModel } from "./product.interface";
+import { IProductModel } from "./product";
 
 export class CProductModel implements IProductModel {
   id: string;

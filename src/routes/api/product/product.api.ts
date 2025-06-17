@@ -1,11 +1,11 @@
-import { CProductModel, IProductModel } from "../../../../../types/products";
+import { CProductModel, IProductModel } from "../../../types/product";
 import { createApiClient } from "../../lib/createApiClient";
 
-const productClient = createApiClient("/products");
+const productClient = createApiClient("/product");
 
 export const getAllProducts = async (): Promise<CProductModel> => {
-  const response = await productClient.get("/");
-  return response as CProductModel;
+  const response = await productClient.get<CProductModel>("/");
+  return response;
 };
 
 export const getProductById = async (id: string): Promise<CProductModel> => {
