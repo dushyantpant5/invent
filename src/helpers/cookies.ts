@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 const setAccessToken = async (token: string, response: NextResponse) => {

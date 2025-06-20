@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
+
 import { UserDatabase } from '@/DatabaseLayer/user';
-import { signUpSchema } from '../../../../../zod-validator';
 import prisma from '@/DatabaseLayer';
+import { setTokensAtTheTimeOfSignUp } from '@/helpers/cookies';
+
+import { signUpSchema } from '../../../../../zod-validator';
 import {
   generateAccessToken,
   generateHashPassword,
   generateRefreshToken,
 } from '../../../../../utils/getHash';
-import { randomBytes } from 'crypto';
-import { setTokensAtTheTimeOfSignUp } from '@/helpers/cookies';
 
 export async function POST(request: Request) {
   const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -44,14 +46,14 @@ export async function POST(request: Request) {
       { status: 201 }
     );
 
-    const newUserProfile = await prisma.user_profiles.create({
+    await prisma.user_profiles.create({
       userId: newUser.id,
     });
 
     const ascessToken = generateAccessToken(newUser.id, email);
     const refreshToken = generateRefreshToken(randomBytes(64).toString('hex'));
 
-    const setSessionDetails = await prisma.sessions.create({
+    await prisma.sessions.create({
       userId: newUser.id,
       refreshTokenHash: refreshToken,
       userAgent: userAgent,
