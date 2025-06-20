@@ -35,8 +35,10 @@ export async function POST(request: Request) {
   const hashedPassword = await generateHashPassword(password);
   try {
     const newUser = await prisma.users.create({
-      email: email,
-      passwordHash: hashedPassword,
+      data: {
+        email: email,
+        passwordHash: hashedPassword,
+      },
     });
     const response = NextResponse.json(
       {
@@ -47,17 +49,21 @@ export async function POST(request: Request) {
     );
 
     await prisma.user_profiles.create({
-      userId: newUser.id,
+      data: {
+        userId: newUser.id,
+      },
     });
 
     const ascessToken = generateAccessToken(newUser.id, email);
     const refreshToken = generateRefreshToken(randomBytes(64).toString('hex'));
 
     await prisma.sessions.create({
-      userId: newUser.id,
-      refreshTokenHash: refreshToken,
-      userAgent: userAgent,
-      ipAddress: ipAddress,
+      data: {
+        userId: newUser.id,
+        refreshTokenHash: refreshToken,
+        userAgent: userAgent,
+        ipAddress: ipAddress,
+      },
     });
 
     setTokensAtTheTimeOfSignUp(ascessToken, refreshToken, response);
