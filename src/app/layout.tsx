@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: 'Inventory management system for small businesses',
 };
 
-import { ReactQueryProvider } from '../routes/providers/ReactQueryProvider';
+import { ReactQueryProvider } from '../uiRoutes/providers/ReactQueryProvider';
 
 export default function RootLayout({
   children,
