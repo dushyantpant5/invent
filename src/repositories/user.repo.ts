@@ -4,11 +4,21 @@ import { prisma } from './index';
 import { DatabaseError } from './lib';
 
 export class UserRepository {
+  static async checkUserExistsByEmail(email: string) {
+    try {
+      const user = await prisma.users.findUnique({ where: { email } });
+      return !!user;
+    } catch (error) {
+      console.log('error', JSON.stringify(error));
+      throw new DatabaseError('Failed to fetch user by email');
+    }
+  }
+
   static async getUserByEmail(email: string) {
     try {
       return await prisma.users.findUnique({ where: { email } });
     } catch {
-      throw new DatabaseError('Failed to fetch user by email');
+      throw new DatabaseError('You are not registered with entered email');
     }
   }
 
