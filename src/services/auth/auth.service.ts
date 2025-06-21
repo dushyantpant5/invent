@@ -22,8 +22,8 @@ export interface ISignUpUserResponse {
 
 export default class AuthService {
   static async handleSignUpUser(signUpData: ISignUpUserDTO): Promise<ISignUpUserResponse> {
-    const userWithEmail = await UserRepository.getUserByEmail(signUpData.email);
-    if (userWithEmail) {
+    const userWithEmail = await UserRepository.checkUserExistsByEmail(signUpData.email);
+    if (userWithEmail === true) {
       throw new ServiceError('User with this email already exists');
     }
 
