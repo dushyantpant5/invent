@@ -9,7 +9,7 @@ export class UserRepository {
       const user = await prisma.users.findUnique({ where: { email } });
       return !!user;
     } catch {
-      throw new DatabaseError('Failed to check if user exists by email');
+      throw new DatabaseError('Failed to fetch user by email');
     }
   }
 
@@ -17,7 +17,7 @@ export class UserRepository {
     try {
       return await prisma.users.findUnique({ where: { email } });
     } catch {
-      throw new DatabaseError('Failed to fetch user by email');
+      throw new DatabaseError('You are not registered with entered email');
     }
   }
 

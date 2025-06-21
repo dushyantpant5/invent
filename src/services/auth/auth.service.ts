@@ -20,6 +20,19 @@ export interface ISignUpUserResponse {
   refreshToken: string;
 }
 
+interface ISignInUserDTO {
+  email: string;
+  password: string;
+  userAgent: string;
+  ipAddress: string;
+}
+
+export interface ISignInUserResponse {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
 export default class AuthService {
   static async handleSignUpUser(signUpData: ISignUpUserDTO): Promise<ISignUpUserResponse> {
     const userWithEmail = await UserRepository.checkUserExistsByEmail(signUpData.email);
@@ -66,6 +79,44 @@ export default class AuthService {
 
     return {
       message: 'User successfully registered',
+      accessToken: accessToken!,
+      refreshToken: refreshToken.tokenValue,
+    };
+  }
+
+  static async handleSignInUser(signInData: ISignInUserDTO): Promise<ISignInUserResponse> {
+    let accessToken: string;
+    const refreshToken = TokenFactory.getRefreshToken();
+    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
+    const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
+    try {
+      const userWithEmail = await UserRepository.getUserByEmail(signInData.email);
+      if (userWithEmail) {
+        const hashedPassword = userWithEmail.passwordHash;
+        const actualPassword = signInData.password;
+        const checkPassword = await PasswordFactory.verify(actualPassword, hashedPassword);
+        if (!checkPassword) {
+          throw new ServiceError('Please check your Credentials!');
+        }
+
+        await SessionRepository.createSession(
+          userWithEmail.id,
+          refreshTokenHash.tokenValue,
+          signInData.userAgent,
+          signInData.ipAddress,
+          refreshTokenExpiresAt
+        );
+        accessToken = TokenFactory.getAccessToken({
+          id: userWithEmail.id,
+          email: signInData.email,
+        }).tokenValue;
+      }
+    } catch {
+      throw new ServiceError('Unable to login due to wrong credentials');
+    }
+
+    return {
+      message: 'User Login Successfully',
       accessToken: accessToken!,
       refreshToken: refreshToken.tokenValue,
     };
