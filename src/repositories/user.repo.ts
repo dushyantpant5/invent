@@ -8,8 +8,7 @@ export class UserRepository {
     try {
       const user = await prisma.users.findUnique({ where: { email } });
       return !!user;
-    } catch (error) {
-      console.log('error', JSON.stringify(error));
+    } catch {
       throw new DatabaseError('Failed to fetch user by email');
     }
   }
