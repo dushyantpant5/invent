@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { AccessTokenCookieTIme, RefreshTokenCookieTime } from '@/constants/tokens.constant';
+
 const setAccessToken = async (token: string, response: NextResponse) => {
   response.cookies.set({
     name: 'accessToken',
@@ -7,7 +9,7 @@ const setAccessToken = async (token: string, response: NextResponse) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 30, //30 min
+    maxAge: AccessTokenCookieTIme, // 30 minutes
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   return response;
@@ -20,7 +22,7 @@ const setRefreshToken = (token: string, response: NextResponse) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: RefreshTokenCookieTime, // 7 days
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   return response;

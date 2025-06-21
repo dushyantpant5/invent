@@ -1,4 +1,4 @@
-import { createApiClient } from '@/routes/lib/createApiClient';
+import { createApiClient } from '@/uiRoutes/lib/createApiClient';
 
 const authClient = createApiClient('/auth');
 
