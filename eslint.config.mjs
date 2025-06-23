@@ -1,48 +1,37 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
+// eslint.config.mjs
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import prettierPlugin from 'eslint-plugin-prettier';
+import unusedImportsPlugin from 'eslint-plugin-unused-imports';
+import importPlugin from 'eslint-plugin-import';
+import nextPlugin from 'eslint-plugin-next';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: {
-    rules: {
-      'no-unused-vars': 'warn',
-      'no-console': 'off',
-    },
-  },
-});
-
-const config = [
+export default [
   {
-    ignores: ['.next/', 'node_modules/', 'dist/', 'build/'],
+    ignores: ['node_modules', '.next', 'dist', 'build'],
   },
 
-  ...compat.extends(
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
-    'next/core-web-vitals'
-  ),
-
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
+    files: ['**/*.{js,ts,jsx,tsx}'],
     languageOptions: {
-      parser: (await import('@typescript-eslint/parser')).default,
+      parser: tsParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
     },
     plugins: {
-      '@typescript-eslint': (await import('@typescript-eslint/eslint-plugin')).default,
-      prettier: (await import('eslint-plugin-prettier')).default,
-      'unused-imports': (await import('eslint-plugin-unused-imports')).default,
-      import: (await import('eslint-plugin-import')).default,
+      '@typescript-eslint': tsPlugin,
+      prettier: prettierPlugin,
+      'unused-imports': unusedImportsPlugin,
+      import: importPlugin,
+      next: nextPlugin,
     },
     rules: {
+      // Prettier
+      'prettier/prettier': 'error',
+
+      // Unused imports
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
@@ -53,6 +42,12 @@ const config = [
           argsIgnorePattern: '^_',
         },
       ],
+
+      // TypeScript
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+
+      // Import order
       'import/order': [
         'warn',
         {
@@ -60,11 +55,11 @@ const config = [
           'newlines-between': 'always',
         },
       ],
-      'prettier/prettier': 'error',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
+
+      // General
+      'no-console': 'off',
+      'no-unused-vars': 'off', // handled by unused-imports
+      'react/jsx-key': 'warn',
     },
   },
 ];
-
-export default config;

@@ -1,6 +1,19 @@
 {
+  // Format on save
   "editor.formatOnSave": true,
+
+  // Use ESLint to auto-fix issues and format
   "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
-  }
+    "source.fixAll": true,
+    "source.fixAll.eslint": true
+  },
+
+  // Tell VS Code to use ESLint for validation
+  "eslint.validate": ["javascript", "typescript", "typescriptreact", "javascriptreact"],
+
+  // Use the workspace version of ESLint
+  "eslint.packageManager": "npm",
+
+  // Optional: prettier not needed as separate formatter if ESLint handles it
+  "prettier.enable": false
 }
