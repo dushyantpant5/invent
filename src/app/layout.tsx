@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Invent',
-  description: 'Inventory management system for small businesses',
+  description: 'Inventory management system for all businesses',
 };
 
 import { ReactQueryProvider } from '../uiRoutes/providers/ReactQueryProvider';

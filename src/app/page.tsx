@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 import MaxWidthWrapper from '@/components/MaxWidthWrapper';
-
 import { buttonVariants } from '@/components/ui/button';
 
 export default function Home() {
@@ -13,11 +12,12 @@ export default function Home() {
           <p className="text-sm font-semibold text-gray-700">Invent is now live!</p>
         </div>
         <h1 className="max-w-4xl text-5xl font-bold md:text-6xl lg:text-7xl">
-          Manage <span className="text-blue-600">inventory, stock</span>, and suppliers effortlessly.
+          Manage <span className="text-blue-600">inventory, stock</span>, and suppliers
+          effortlessly.
         </h1>
         <p className="mt-5 max-w-prose text-zinc-700 sm:text-lg">
-          Invent helps you track inventory, monitor stock levels, and streamline supplier operations in real-time.
-          Start managing your business efficiently today.
+          Invent helps you track inventory, monitor stock levels, and streamline supplier operations
+          in real-time. Start managing your business efficiently today.
         </p>
 
         <Link
@@ -60,7 +60,6 @@ export default function Home() {
           />
         </div>
       </div>
-
 
       {/* Features Section */}
       <div className="mx-auto mb-32 mt-32 max-w-5xl sm:mt-56">
