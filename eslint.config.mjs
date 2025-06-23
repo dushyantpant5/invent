@@ -1,12 +1,25 @@
-// eslint.config.mjs
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import prettierPlugin from 'eslint-plugin-prettier';
-import unusedImportsPlugin from 'eslint-plugin-unused-imports';
-import importPlugin from 'eslint-plugin-import';
-import nextPlugin from 'eslint-plugin-next';
+// eslint.config.js (using ESLint Flat Config with Prettier loaded from `.prettierrc`)
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { FlatCompat } from '@eslint/eslintrc';
 
-export default [
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const prettierConfig = JSON.parse(readFileSync(resolve(__dirname, './.prettierrc.json'), 'utf-8'));
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: {
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-console': 'off',
+    },
+  },
+});
+
+const config = [
   {
     ignores: ['node_modules', '.next', 'dist', 'build'],
   },
@@ -55,11 +68,9 @@ export default [
           'newlines-between': 'always',
         },
       ],
-
-      // General
-      'no-console': 'off',
-      'no-unused-vars': 'off', // handled by unused-imports
-      'react/jsx-key': 'warn',
+      'prettier/prettier': ['error', prettierConfig],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
 ];
