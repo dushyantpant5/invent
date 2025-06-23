@@ -26,6 +26,8 @@ model users {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email        String   @unique
   passwordHash String
+  isVerified   Boolean  @default(false)
+  verifiedAt   DateTime?  
   created_at   DateTime @default(now()) @db.Timestamptz(6)
   updated_at   DateTime @default(now()) @db.Timestamptz(6)
 
@@ -71,4 +73,15 @@ model user_inventory_roles {
   users       users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, inventory_id])
+}
+
+model email_otps {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String   
+  otpHash    String   
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  used       Boolean  @default(false) 
+
+  @@index([email])
 }
