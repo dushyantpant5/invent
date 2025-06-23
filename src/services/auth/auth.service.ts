@@ -1,11 +1,11 @@
+import { ServiceError } from '../lib';
+import { PasswordFactory } from './password-factory/password.factory';
+import { TokenFactory } from './token-factory/token.factory';
+
 import { UserRepository } from '@/repositories/user.repo';
 import { SessionRepository } from '@/repositories/session.repo';
 import prisma from '@/repositories';
 import { RefreshTokenExpiresAt } from '@/constants/tokens.constant';
-
-import { ServiceError } from '../lib';
-import { PasswordFactory } from './password-factory/password.factory';
-import { TokenFactory } from './token-factory/token.factory';
 
 interface ISignUpUserDTO {
   email: string;

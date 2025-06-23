@@ -1,6 +1,5 @@
 {
+  // Format on save
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
-  }
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint"
 }
