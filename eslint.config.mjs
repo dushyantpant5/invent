@@ -3,6 +3,12 @@ import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { FlatCompat } from '@eslint/eslintrc';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import prettierPlugin from 'eslint-plugin-prettier';
+import unusedImportsPlugin from 'eslint-plugin-unused-imports';
+import importPlugin from 'eslint-plugin-import';
+import nextPlugin from '@next/eslint-plugin-next';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,9 +25,9 @@ const compat = new FlatCompat({
   },
 });
 
-const config = [
+export default [
   {
-    ignores: ['node_modules', '.next', 'dist', 'build'],
+    ignores: ['node_modules', '.next', 'dist', 'build', 'eslint.config.mjs'],
   },
 
   {
