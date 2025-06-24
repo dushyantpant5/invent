@@ -1,9 +1,19 @@
-import { dirname } from 'path';
+// eslint.config.js (using ESLint Flat Config with Prettier loaded from `.prettierrc`)
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { FlatCompat } from '@eslint/eslintrc';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import prettierPlugin from 'eslint-plugin-prettier';
+import unusedImportsPlugin from 'eslint-plugin-unused-imports';
+import importPlugin from 'eslint-plugin-import';
+import nextPlugin from '@next/eslint-plugin-next';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const prettierConfig = JSON.parse(readFileSync(resolve(__dirname, './.prettierrc.json'), 'utf-8'));
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -15,34 +25,32 @@ const compat = new FlatCompat({
   },
 });
 
-const config = [
+export default [
   {
-    ignores: ['.next/', 'node_modules/', 'dist/', 'build/'],
+    ignores: ['node_modules', '.next', 'dist', 'build', 'eslint.config.mjs'],
   },
 
-  ...compat.extends(
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
-    'next/core-web-vitals'
-  ),
-
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
+    files: ['**/*.{js,ts,jsx,tsx}'],
     languageOptions: {
-      parser: (await import('@typescript-eslint/parser')).default,
+      parser: tsParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
     },
     plugins: {
-      '@typescript-eslint': (await import('@typescript-eslint/eslint-plugin')).default,
-      prettier: (await import('eslint-plugin-prettier')).default,
-      'unused-imports': (await import('eslint-plugin-unused-imports')).default,
-      import: (await import('eslint-plugin-import')).default,
+      '@typescript-eslint': tsPlugin,
+      prettier: prettierPlugin,
+      'unused-imports': unusedImportsPlugin,
+      import: importPlugin,
+      next: nextPlugin,
     },
     rules: {
+      // Prettier
+      'prettier/prettier': 'error',
+
+      // Unused imports
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
@@ -53,6 +61,12 @@ const config = [
           argsIgnorePattern: '^_',
         },
       ],
+
+      // TypeScript
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+
+      // Import order
       'import/order': [
         'warn',
         {
@@ -60,11 +74,9 @@ const config = [
           'newlines-between': 'always',
         },
       ],
-      'prettier/prettier': 'error',
+      'prettier/prettier': ['error', prettierConfig],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
 ];
-
-export default config;
