@@ -10,14 +10,10 @@ import { RefreshTokenExpiresAt } from '@/constants/tokens.constant';
 interface ISignUpUserDTO {
   email: string;
   password: string;
-  userAgent: string;
-  ipAddress: string;
 }
 
 export interface ISignUpUserResponse {
   message: string;
-  accessToken: string;
-  refreshToken: string;
 }
 
 interface ISignInUserDTO {
@@ -33,6 +29,27 @@ export interface ISignInUserResponse {
   refreshToken: string;
 }
 
+interface otpData {
+  email: string;
+  otpHash: string;
+  createdAt: Date;
+  expiresAt: Date;
+  used: boolean;
+}
+
+interface ISignUpUserWithOtp {
+  email: string;
+  idd: string;
+  userAgent: string;
+  ipAddress: string;
+}
+
+export interface ISignUpUserWithOtpResponse {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
 export default class AuthService {
   static async handleSignUpUser(signUpData: ISignUpUserDTO): Promise<ISignUpUserResponse> {
     const userWithEmail = await UserRepository.checkUserExistsByEmail(signUpData.email);
@@ -41,11 +58,6 @@ export default class AuthService {
     }
 
     const hashedPassword = await PasswordFactory.generateHashPassword(signUpData.password);
-    const refreshToken = TokenFactory.getRefreshToken();
-    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
-    const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
-
-    let accessToken: string;
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -58,20 +70,6 @@ export default class AuthService {
         );
 
         await UserRepository.createUserProfile(newUser.id, tx);
-
-        await SessionRepository.createSession(
-          newUser.id,
-          refreshTokenHash.tokenValue,
-          signUpData.userAgent,
-          signUpData.ipAddress,
-          refreshTokenExpiresAt,
-          tx
-        );
-
-        accessToken = TokenFactory.getAccessToken({
-          id: newUser.id,
-          email: newUser.email,
-        }).tokenValue;
       });
     } catch {
       throw new ServiceError('User registration failed');
@@ -79,8 +77,6 @@ export default class AuthService {
 
     return {
       message: 'User successfully registered',
-      accessToken: accessToken!,
-      refreshToken: refreshToken.tokenValue,
     };
   }
 
@@ -117,6 +113,77 @@ export default class AuthService {
 
     return {
       message: 'User Login Successfully',
+      accessToken: accessToken!,
+      refreshToken: refreshToken.tokenValue,
+    };
+  }
+
+  static async handleOtpinSignUp(otpTableData: otpData) {
+    let otpData;
+    try {
+      otpData = await UserRepository.createEmailOtp({
+        otpHash: otpTableData.otpHash,
+        email: otpTableData.email,
+        expiresAt: otpTableData.expiresAt,
+        createdAt: otpTableData.createdAt,
+        used: otpTableData.used,
+      });
+    } catch {
+      throw new Error('Otp udation failed in Db');
+    }
+    return {
+      data: otpData,
+      message: 'OTP successfully filled',
+    };
+  }
+
+  static async getOtpDuringSignUp(id: string) {
+    let otp;
+    try {
+      otp = await UserRepository.getOtpByEmail(id);
+    } catch {
+      throw new Error('Failed to fetch otp from db layer');
+    }
+    return {
+      message: 'OTP fetched successfully',
+      data: otp,
+    };
+  }
+
+  static async updateUserAfterOtpVerification(
+    signInData: ISignUpUserWithOtp
+  ): Promise<ISignUpUserWithOtpResponse> {
+    const refreshToken = TokenFactory.getRefreshToken();
+    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
+    const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
+    let accessToken: string;
+    try {
+      await prisma.$transaction(async (tx) => {
+        const updateUserVerfiedStatus = await UserRepository.updateUserVerifiedStatus(
+          signInData.email,
+          tx
+        );
+
+        await UserRepository.updateEmailOtpsStatus(signInData.idd, tx);
+
+        await SessionRepository.createSession(
+          updateUserVerfiedStatus.id,
+          refreshTokenHash.tokenValue,
+          signInData.userAgent,
+          signInData.ipAddress,
+          refreshTokenExpiresAt,
+          tx
+        );
+        accessToken = TokenFactory.getAccessToken({
+          id: updateUserVerfiedStatus.id,
+          email: updateUserVerfiedStatus.email,
+        }).tokenValue;
+      });
+    } catch {
+      throw new Error('Unable to verified user with otp');
+    }
+    return {
+      message: 'Status Updated Successfully',
       accessToken: accessToken!,
       refreshToken: refreshToken.tokenValue,
     };

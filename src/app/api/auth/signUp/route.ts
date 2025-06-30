@@ -2,14 +2,9 @@ import { NextResponse } from 'next/server';
 
 import { signUpSchema } from '@/zod-validator';
 import AuthService from '@/services/auth/auth.service';
-import { setTokensAtTheTimeOfSignUp } from '@/helpers/cookies';
 
 export async function POST(request: Request) {
   try {
-    const { 'user-agent': userAgent = 'unknown', 'x-forwarded-for': forwarded } =
-      Object.fromEntries(request.headers);
-    const ipAddress = forwarded?.split(',')[0]?.trim() ?? 'unknown';
-
     const body = await request.json();
     const validation = signUpSchema.safeParse(body);
 
@@ -22,16 +17,12 @@ export async function POST(request: Request) {
 
     const { email, password } = validation.data;
 
-    const { message, accessToken, refreshToken } = await AuthService.handleSignUpUser({
+    const { message } = await AuthService.handleSignUpUser({
       email,
       password,
-      userAgent,
-      ipAddress,
     });
 
     const response = NextResponse.json({ message }, { status: 201 });
-    setTokensAtTheTimeOfSignUp(accessToken, refreshToken, response);
-
     return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
