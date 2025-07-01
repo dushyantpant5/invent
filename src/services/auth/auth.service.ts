@@ -140,7 +140,7 @@ export default class AuthService {
   static async getOtpDuringSignUp(id: string) {
     let otp;
     try {
-      otp = await UserRepository.getOtpByEmail(id);
+      otp = await UserRepository.getOtpByUniqueId(id);
     } catch {
       throw new Error('Failed to fetch otp from db layer');
     }

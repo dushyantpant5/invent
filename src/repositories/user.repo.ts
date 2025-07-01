@@ -56,7 +56,7 @@ export class UserRepository {
     }
   }
 
-  static async getOtpByEmail(id: string) {
+  static async getOtpByUniqueId(id: string) {
     try {
       return await prisma.email_otps.findUnique({ where: { id } });
     } catch {
