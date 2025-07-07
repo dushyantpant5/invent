@@ -15,7 +15,7 @@ export function encryptSignupPayload(payload: ISignUpPayload): string {
   return encrypted.toString('base64');
 }
 
-export function decryptSignUpPayload(encryptedBase64: string): any {
+export function decryptSignUpPayload(encryptedBase64: string): ISignUpPayload {
   const encryptedData = Buffer.from(encryptedBase64, 'base64');
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
   const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
