@@ -91,4 +91,17 @@ export class UserRepository {
       throw new DatabaseError('Error on updating user status on otp table');
     }
   }
+
+  static async getUserVerifiedStatus(email: string): Promise<boolean> {
+    try {
+      const latestOtp = await prisma.email_otps.findFirst({
+        where: { email },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return !!latestOtp && latestOtp.used;
+    } catch {
+      throw new DatabaseError('Failed to fetch user verified status');
+    }
+  }
 }

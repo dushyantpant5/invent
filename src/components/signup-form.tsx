@@ -1,8 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-import { generateOtpUpdateTable } from '../utils/generateOtpAndUpdateTable';
+import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,43 +8,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export function SignUpForm({ className, ...props }: React.ComponentProps<'div'>) {
-  const router = useRouter();
+type SignUpFormProps = React.ComponentProps<'div'> & {
+  onSignUp: (data: { email: string; password: string }) => void;
+  mutateData: {
+    isPending: boolean;
+  };
+};
+
+export function SignUpForm({ className, onSignUp, mutateData, ...props }: SignUpFormProps) {
+  const { isPending } = mutateData;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [cpassword, setCpassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const isMatch = password === cpassword;
 
-  async function handleSignUp(e: React.FormEvent) {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    try {
-      const response = await fetch('/api/auth/signUp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid credentials');
-      }
-      await generateOtpUpdateTable(email, router);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        if (err instanceof Error) {
-          setError(err.message); // Handle any errors
-        } else {
-          setError('An unknown error occurred');
-        }
-      }
+    if (!isMatch) {
+      setError('Passwords do not match');
+      return;
     }
-  }
+    setError(null);
+    onSignUp({ email, password });
+  };
+
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
@@ -95,18 +81,18 @@ export function SignUpForm({ className, ...props }: React.ComponentProps<'div'>)
                 )}
                 <Button
                   type="submit"
-                  disabled={password === cpassword ? false : true}
+                  disabled={!isMatch || isPending || !email || !password || !cpassword}
                   className="w-full"
                 >
-                  Register
+                  {isPending ? 'Registering...' : 'Register'}
                 </Button>
                 {error && <p className="text-sm text-red-500 text-center">{error}</p>}
               </div>
               <div className="text-center text-sm">
                 Already have an account?{' '}
-                <a href="#" className="underline underline-offset-4">
+                <Link href="/auth/signin" className="underline underline-offset-4">
                   Sign In
-                </a>
+                </Link>
               </div>
             </div>
           </form>

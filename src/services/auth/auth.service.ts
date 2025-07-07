@@ -1,18 +1,24 @@
+import { cookies } from 'next/headers';
+
 import { ServiceError } from '../lib';
 import { PasswordFactory } from './password-factory/password.factory';
 import { TokenFactory } from './token-factory/token.factory';
+import { OtpFactory } from './otp-factory/otp.factory';
 
 import { UserRepository } from '@/repositories/user.repo';
 import { SessionRepository } from '@/repositories/session.repo';
 import prisma from '@/repositories';
 import { RefreshTokenExpiresAt } from '@/constants/tokens.constant';
+import { OtpRepository } from '@/repositories/otp.repo';
+import { OtpExpiresAt } from '@/constants/otp.constant';
+import { decryptSignUpPayload } from '@/helpers/encryption';
 
 interface ISignUpUserDTO {
   email: string;
   password: string;
 }
 
-export interface ISignUpUserResponse {
+interface ISignUpUserResponse {
   message: string;
 }
 
@@ -23,31 +29,19 @@ interface ISignInUserDTO {
   ipAddress: string;
 }
 
-export interface ISignInUserResponse {
+interface ISignInUserResponse {
   message: string;
   accessToken: string;
   refreshToken: string;
 }
 
-interface otpData {
-  email: string;
-  otpHash: string;
-  createdAt: Date;
-  expiresAt: Date;
-  used: boolean;
+interface IOtpVerificationDTO {
+  otp: string;
 }
 
-interface ISignUpUserWithOtp {
-  email: string;
-  idd: string;
+interface ICompleteSignUpRouteDTO {
   userAgent: string;
   ipAddress: string;
-}
-
-export interface ISignUpUserWithOtpResponse {
-  message: string;
-  accessToken: string;
-  refreshToken: string;
 }
 
 export default class AuthService {
@@ -77,6 +71,116 @@ export default class AuthService {
 
     return {
       message: 'User successfully registered',
+    };
+  }
+
+  static async handleRequestSignUp(signUpData: ISignUpUserDTO) {
+    // Check if user already exists
+    const userWithEmail = await UserRepository.checkUserExistsByEmail(signUpData.email);
+    if (userWithEmail === true) {
+      throw new ServiceError('User with this email already exists');
+    }
+    // Generate OTP
+    const otp = OtpFactory.generateOtp();
+    const otpHash = OtpFactory.generateOtpHash(otp);
+
+    // This will be used later in production to send OTP to user's email
+    // Send OTP to user's email
+    // await EmailService.sendOtpEmail({
+    //   toEmail: signUpData.email,
+    //   otp,
+    // });
+
+    // Insert OTP into the database
+    try {
+      await OtpRepository.createEmailOtp({
+        otpHash,
+        email: signUpData.email,
+        expiresAt: new Date(Date.now() + OtpExpiresAt),
+      });
+    } catch (error) {
+      console.error('Error creating OTP:', error);
+      throw new ServiceError('Failed to create OTP for user');
+    }
+
+    // We are returning the OTP in the response for testing purposes will be removed later
+    return {
+      message: 'OTP successfully created and sent to email',
+      status: 200,
+      otp: otp, // This should be removed in production
+    };
+  }
+
+  static async handleVerifyOtp(otpVerificationData: IOtpVerificationDTO) {
+    const userSignUpData = await this.getUserSignUpDataFromCookies();
+    const latestValidOtp = await OtpRepository.getLatestValidOtpByEmail(userSignUpData.email);
+    if (!latestValidOtp) {
+      throw new ServiceError('No valid OTP found for this email');
+    }
+    const isOtpValid = OtpFactory.verifyOtp(otpVerificationData.otp, latestValidOtp.otpHash);
+    if (!isOtpValid) {
+      console.error('Invalid OTP provided:', otpVerificationData.otp);
+      throw new ServiceError('Invalid OTP');
+    }
+    // Mark the OTP as used
+    await OtpRepository.markOtpAsUsed(latestValidOtp.id);
+    return {
+      message: 'OTP successfully verified',
+      status: 200,
+    };
+  }
+
+  static async handleCompleteSignUp(routeData: ICompleteSignUpRouteDTO) {
+    const userSignUpData = await this.getUserSignUpDataFromCookies();
+    const hashedPassword = await PasswordFactory.generateHashPassword(userSignUpData.password);
+    const refreshToken = TokenFactory.getRefreshToken();
+    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
+    const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
+    let accessToken: string;
+
+    const isUserVerified = await UserRepository.getUserVerifiedStatus(userSignUpData.email);
+    if (!isUserVerified) {
+      throw new ServiceError('User is not verified');
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const newUser = await UserRepository.createUser(
+          {
+            email: userSignUpData.email,
+            passwordHash: hashedPassword,
+          },
+          tx
+        );
+
+        await UserRepository.createUserProfile(newUser.id, tx);
+        await UserRepository.updateUserVerifiedStatus(userSignUpData.email, tx);
+        await SessionRepository.createSession(
+          newUser.id,
+          refreshTokenHash.tokenValue,
+          routeData.userAgent,
+          routeData.ipAddress,
+          refreshTokenExpiresAt,
+          tx
+        );
+
+        accessToken = TokenFactory.getAccessToken({
+          id: newUser.id,
+          email: newUser.email,
+        }).tokenValue;
+      });
+    } catch {
+      throw new ServiceError('User registration failed');
+    }
+
+    // Clear the cookies after successful registration
+    const cookieStore = await cookies();
+    cookieStore.delete('userPayload');
+
+    return {
+      message: 'User successfully registered',
+      accessToken: accessToken!,
+      refreshToken: refreshToken.tokenValue,
     };
   }
 
@@ -118,74 +222,21 @@ export default class AuthService {
     };
   }
 
-  static async handleOtpinSignUp(otpTableData: otpData) {
-    let otpData;
-    try {
-      otpData = await UserRepository.createEmailOtp({
-        otpHash: otpTableData.otpHash,
-        email: otpTableData.email,
-        expiresAt: otpTableData.expiresAt,
-        createdAt: otpTableData.createdAt,
-        used: otpTableData.used,
-      });
-    } catch {
-      throw new Error('Otp udation failed in Db');
+  /**Private Functions
+   * These functions are not exported and are used internally within the AuthService class.
+   */
+
+  private static async getUserSignUpDataFromCookies() {
+    const cookieStore = await cookies();
+    const encryptedPayload = cookieStore.get('userPayload')?.value;
+    if (!encryptedPayload) {
+      throw new ServiceError('No user data found in cookies');
     }
-    return {
-      data: otpData,
-      message: 'OTP successfully filled',
-    };
-  }
 
-  static async getOtpDuringSignUp(id: string) {
-    let otp;
-    try {
-      otp = await UserRepository.getOtpByUniqueId(id);
-    } catch {
-      throw new Error('Failed to fetch otp from db layer');
+    const { email, password } = decryptSignUpPayload(encryptedPayload);
+    if (!email || !password) {
+      throw new ServiceError('Invalid user data in cookies');
     }
-    return {
-      message: 'OTP fetched successfully',
-      data: otp,
-    };
-  }
-
-  static async updateUserAfterOtpVerification(
-    signInData: ISignUpUserWithOtp
-  ): Promise<ISignUpUserWithOtpResponse> {
-    const refreshToken = TokenFactory.getRefreshToken();
-    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
-    const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
-    let accessToken: string;
-    try {
-      await prisma.$transaction(async (tx) => {
-        const updateUserVerfiedStatus = await UserRepository.updateUserVerifiedStatus(
-          signInData.email,
-          tx
-        );
-
-        await UserRepository.updateEmailOtpsStatus(signInData.idd, tx);
-
-        await SessionRepository.createSession(
-          updateUserVerfiedStatus.id,
-          refreshTokenHash.tokenValue,
-          signInData.userAgent,
-          signInData.ipAddress,
-          refreshTokenExpiresAt,
-          tx
-        );
-        accessToken = TokenFactory.getAccessToken({
-          id: updateUserVerfiedStatus.id,
-          email: updateUserVerfiedStatus.email,
-        }).tokenValue;
-      });
-    } catch {
-      throw new Error('Unable to verified user with otp');
-    }
-    return {
-      message: 'Status Updated Successfully',
-      accessToken: accessToken!,
-      refreshToken: refreshToken.tokenValue,
-    };
+    return { email, password };
   }
 }

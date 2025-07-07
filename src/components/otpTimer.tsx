@@ -1,21 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
 
-import { generateOtpUpdateTable } from '@/utils/generateOtpAndUpdateTable';
-interface OtpTimerProps {
-  emails: string;
-}
-export default function OtpTimer({ emails }: OtpTimerProps) {
-  console.log('props on top', emails);
-  const [timeLeft, setTimeLeft] = useState(600); // 600 seconds = 10 minutes
-  const [showResend, setShowResend] = useState(false);
-  const router = useRouter();
-  // Countdown logic
+import { useEffect, useState } from 'react';
+
+export default function OtpTimer() {
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+
+  // Countdown timer
   useEffect(() => {
-    if (timeLeft <= 0) {
-      setShowResend(true); // show button
-      return;
-    }
+    if (timeLeft <= 0) return;
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
@@ -24,7 +16,7 @@ export default function OtpTimer({ emails }: OtpTimerProps) {
     return () => clearInterval(interval);
   }, [timeLeft]);
 
-  // Format time as mm:ss
+  // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
       .toString()
@@ -33,25 +25,12 @@ export default function OtpTimer({ emails }: OtpTimerProps) {
     return `${m}:${s}`;
   };
 
-  const handleResendOtp = async () => {
-    // 👇 Call your backend API to regenerate OTP
-    // await fetch('/api/auth/resend-otp', { method: 'POST', body: JSON.stringify({ email }) });
-    await generateOtpUpdateTable(emails, router);
-    setTimeLeft(600); // reset to 10 minutes
-    setShowResend(false); // hide button
-  };
-
   return (
-    <div className="mx-80">
-      {showResend ? (
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 -mx-60"
-          onClick={handleResendOtp}
-        >
-          Generate New OTP
-        </button>
+    <div className="mx-auto mt-4 text-center">
+      {timeLeft > 0 ? (
+        <p className="text-lg font-medium">OTP Expires in: {formatTime(timeLeft)}</p>
       ) : (
-        <p className="text-lg font-medium -mx-60 ">OTP Expires in: {formatTime(timeLeft)}</p>
+        <p className="text-red-500 font-medium">OTP has expired. Please go back and try again.</p>
       )}
     </div>
   );

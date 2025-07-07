@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { encryptSignupPayload } from './encryption';
+
 import { AccessTokenCookieTIme, RefreshTokenCookieTime } from '@/constants/tokens.constant';
 
 const setAccessToken = async (token: string, response: NextResponse) => {
@@ -37,4 +39,26 @@ const setTokensAtTheTimeOfSignUp = (
   setRefreshToken(refreshToken, response);
 };
 
-export { setTokensAtTheTimeOfSignUp, setAccessToken };
+const setSignUpData = (
+  signUpPayload: {
+    email: string;
+    password: string;
+  },
+  response: NextResponse
+) => {
+  const encrypted = encryptSignupPayload(signUpPayload);
+
+  response.cookies.set({
+    name: 'userPayload',
+    value: encrypted,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 3600, // 1 hour
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+
+  return response;
+};
+
+export { setTokensAtTheTimeOfSignUp, setAccessToken, setSignUpData };

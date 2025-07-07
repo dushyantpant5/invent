@@ -1,10 +1,8 @@
 'use client';
-import { useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { PasswordFactory } from '@/services/auth/password-factory/password.factory';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -24,10 +22,11 @@ const FormSchema = z.object({
   }),
 });
 
-export default function InputOTPForm() {
-  const searchParams = useSearchParams();
-  const dataParam = searchParams.get('data');
-  const parsed = dataParam ? JSON.parse(decodeURIComponent(dataParam)) : null;
+type OTPFormProps = React.ComponentProps<'div'> & {
+  verifyOtpFunction: (data: { otp: string }) => void;
+};
+
+export default function InputOTPForm({ verifyOtpFunction }: OTPFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -36,35 +35,8 @@ export default function InputOTPForm() {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    const id = parsed.id;
-    const otpResponse = await fetch(`../api/auth/otp?id=${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    const response = await otpResponse.json();
-    console.log('otpform in otpHash', response);
-    const otpHashComp = await PasswordFactory.verify(data.pin, response.data.otpHash);
-    const otpTimeExpires = new Date(response.data.expiresAt);
-    const curentTime = new Date();
-    const email = response.data.email;
-    const idd = response.data.id;
-    if (otpHashComp) {
-      if (curentTime <= otpTimeExpires) {
-        await fetch('../api/auth/otp', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, idd }),
-        });
-      } else {
-        console.log('expired time');
-      }
-    } else {
-      console.log('wrong otp');
-    }
+    const { pin } = data;
+    verifyOtpFunction({ otp: pin });
   }
 
   return (
@@ -95,11 +67,7 @@ export default function InputOTPForm() {
             </FormItem>
           )}
         />
-        {parsed?.emails ? (
-          <OtpTimer emails={parsed.emails} />
-        ) : (
-          <p className="text-red-500">Email not found in URL</p>
-        )}
+        <OtpTimer />
         <Button type="submit">Submit</Button>
       </form>
     </Form>
