@@ -1,5 +1,3 @@
-import emailjs from 'emailjs-com';
-
 interface SendEmailParams {
   toEmail: string;
   otp: string;
@@ -24,15 +22,15 @@ export class EmailServiceClass {
     this.userID = userID;
   }
 
-  async sendOtpEmail({ toEmail, otp }: SendEmailParams): Promise<void> {
-    await emailjs.send(
-      this.serviceID,
-      this.templateID,
-      {
-        email: toEmail,
-        passcode: otp,
-      },
-      this.userID
-    );
-  }
+  // async sendOtpEmail({ toEmail, otp }: SendEmailParams): Promise<void> {
+  //   await emailjs.send(
+  //     this.serviceID,
+  //     this.templateID,
+  //     {
+  //       email: toEmail,
+  //       passcode: otp,
+  //     },
+  //     this.userID
+  //   );
+  // }
 }

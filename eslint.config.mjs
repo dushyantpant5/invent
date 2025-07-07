@@ -77,6 +77,7 @@ export default [
       'prettier/prettier': ['error', prettierConfig],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'next/core-web-vitals': 'warn',
     },
   },
 ];
