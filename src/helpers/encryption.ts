@@ -1,7 +1,12 @@
 import crypto from 'crypto';
 
 const algorithm = 'aes-256-cbc';
-const key = crypto.createHash('sha256').update(process.env.USER_PAYLOAD_SECRET!).digest();
+
+if (!process.env.USER_PAYLOAD_SECRET) {
+  throw new Error('USER_PAYLOAD_SECRET environment variable is missing');
+}
+
+const key = crypto.createHash('sha256').update(process.env.USER_PAYLOAD_SECRET).digest();
 const iv = Buffer.alloc(16, 0);
 
 interface ISignUpPayload {
