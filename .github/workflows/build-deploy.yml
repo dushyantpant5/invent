@@ -42,6 +42,7 @@ jobs:
       - name: Build project
         env:
           NODE_ENV: production
+          USER_PAYLOAD_SECRET: ${{ secrets.USER_PAYLOAD_SECRET }}
         run: npm run build
 
       - name: Install Vercel CLI
