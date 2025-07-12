@@ -1,27 +1,27 @@
 import { createApiClient } from '@/uiRoutes/lib/createApiClient';
 import { sendOtpEmail } from '@/helpers/emailjs';
 
-// Will be removed later as we will use the EmailService and EmailServiceClass
-type SignUpResponse = {
-  message: string;
-  otp: string;
-};
-
 const authClient = createApiClient('/auth');
 
 // This fucntion will be chagned later as we will use the EmailService and EmailServiceClass
 export const requestSignUp = async (email: string, password: string): Promise<void> => {
   const data = { email, password };
 
-  const response: SignUpResponse = await authClient.post('/signUp/request-signup', data);
+  const response: { message: string; otp?: string; error?: string } = await authClient.post(
+    '/signUp/request-signup',
+    data
+  );
 
-  if (response.otp) {
+  const { otp, error } = response;
+
+  if (otp) {
+    console.log('OTP created:', otp);
     await sendOtpEmail({
       toEmail: email,
-      otp: response.otp,
+      otp,
     });
   } else {
-    throw new Error(response?.message || 'Failed to request sign up');
+    throw new Error(error || 'Failed to request sign up');
   }
 };
 
