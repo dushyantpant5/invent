@@ -19,13 +19,13 @@ export default function Home() {
           Invent helps you track inventory, monitor stock levels, and streamline supplier operations
           in real-time. Start managing your business efficiently today.
         </p>
-
+        {/* Adding singup route for now , will be replaced with auth-callback later */}
         <Link
           className={buttonVariants({
             size: 'lg',
             className: 'mt-5',
           })}
-          href="/dashboard"
+          href="/auth/signUp"
         >
           Get Started <ArrowRight className="ml-2 h-5 w-5" />
         </Link>

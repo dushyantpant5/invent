@@ -16,4 +16,8 @@ const signInSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export { signUpSchema, signInSchema };
+const otpVerificationSchema = z.object({
+  otp: z.string().length(6, 'OTP must be exactly 6 characters'),
+});
+
+export { signUpSchema, signInSchema, otpVerificationSchema };
