@@ -33,6 +33,14 @@ jobs:
             echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
           fi
 
+      - name: Set API Base URL
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "NEXT_PUBLIC_API_BASE_URL=https://invent-delta.vercel.app/api" >> $GITHUB_ENV
+          else
+            echo "NEXT_PUBLIC_API_BASE_URL=https://invent-dushyantpant5-dushyantpant5s-projects.vercel.app/api" >> $GITHUB_ENV
+          fi
+
       - name: Generate Prisma Client
         run: npx prisma generate
 
@@ -42,6 +50,7 @@ jobs:
       - name: Build project
         env:
           NODE_ENV: production
+          NEXT_PUBLIC_API_BASE_URL: ${{ env.NEXT_PUBLIC_API_BASE_URL }}
           USER_PAYLOAD_SECRET: ${{ secrets.USER_PAYLOAD_SECRET }}
         run: npm run build
 
