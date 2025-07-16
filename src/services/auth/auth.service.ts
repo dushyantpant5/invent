@@ -8,7 +8,7 @@ import { OtpFactory } from './otp-factory/otp.factory';
 import { UserRepository } from '@/repositories/user.repo';
 import { SessionRepository } from '@/repositories/session.repo';
 import prisma from '@/repositories';
-import { RefreshTokenExpiresAt } from '@/constants/tokens.constant';
+import { AccessToken, RefreshTokenExpiresAt } from '@/constants/tokens.constant';
 import { OtpRepository } from '@/repositories/otp.repo';
 import { OtpExpiresAt } from '@/constants/otp.constant';
 import { decryptSignUpPayload } from '@/helpers/encryption';
@@ -219,6 +219,22 @@ export default class AuthService {
       message: 'User Login Successfully',
       accessToken: accessToken!,
       refreshToken: refreshToken.tokenValue,
+    };
+  }
+
+  static async getUserSession(): Promise<{ id: string; userEmail: string }> {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(AccessToken)?.value;
+    if (!accessToken) {
+      throw new ServiceError('No access token found in cookies');
+    }
+    const userPayload = TokenFactory.verifyAccessToken(accessToken);
+    if (!userPayload) {
+      throw new ServiceError('Invalid access token');
+    }
+    return {
+      id: userPayload.id,
+      userEmail: userPayload.email,
     };
   }
 

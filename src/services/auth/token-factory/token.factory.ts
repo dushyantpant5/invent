@@ -32,6 +32,21 @@ export class TokenFactory {
     return new Token(hashed);
   }
 
+  static verifyAccessToken(token: string): IAccessTokenPayload {
+    const secretKey: string | undefined = process.env.JWT_SECRET;
+
+    if (!secretKey) {
+      throw new Error('JWT secret key is not defined');
+    }
+
+    try {
+      const decoded = jwt.verify(token, secretKey) as IAccessTokenPayload;
+      return decoded;
+    } catch {
+      throw new Error('Invalid access token');
+    }
+  }
+
   private static signAccessTokenWithJWT(payload: IAccessTokenPayload): string {
     const secretKey: string | undefined = process.env.JWT_SECRET;
 

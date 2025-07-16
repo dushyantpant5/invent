@@ -9,7 +9,7 @@ datasource db {
 
 enum UserRole {
   admin
-  super_admin
+  staff
 }
 
 model user_profiles {
@@ -59,6 +59,20 @@ model inventories {
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
   user_inventory_roles user_inventory_roles[]
+
+  inventory_codes inventory_codes[]
+}
+
+model inventory_codes {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inventoryId  String      @db.Uuid
+  code         String      @unique
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime    @updatedAt @db.Timestamptz(6)
+
+  inventory    inventories @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
 }
 
 model user_inventory_roles {

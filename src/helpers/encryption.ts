@@ -26,3 +26,16 @@ export function decryptSignUpPayload(encryptedBase64: string): ISignUpPayload {
   const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
   return JSON.parse(decrypted.toString('utf8'));
 }
+
+export function encryptInventoryData(inventoryId: string): string {
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
+  const encrypted = Buffer.concat([cipher.update(inventoryId, 'utf8'), cipher.final()]);
+  return encrypted.toString('base64');
+}
+
+export function decryptInventoryData(encryptedBase64: string): string {
+  const encryptedData = Buffer.from(encryptedBase64, 'base64');
+  const decipher = crypto.createDecipheriv(algorithm, key, iv);
+  const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+  return decrypted.toString('utf8');
+}
