@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { encryptSignupPayload } from './encryption';
+import { encryptInventoryData, encryptSignupPayload } from './encryption';
 
 import { AccessTokenCookieTIme, RefreshTokenCookieTime } from '@/constants/tokens.constant';
 
@@ -61,4 +61,19 @@ const setSignUpData = (
   return response;
 };
 
-export { setTokensAtTheTimeOfSignUp, setAccessToken, setSignUpData };
+const setInventoryData = (inventoryId: string, response: NextResponse) => {
+  const encryptedInventoryData = encryptInventoryData(inventoryId);
+
+  response.cookies.set({
+    name: 'inventoryData',
+    value: encryptedInventoryData,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+  return response;
+};
+
+export { setTokensAtTheTimeOfSignUp, setAccessToken, setSignUpData, setInventoryData };
