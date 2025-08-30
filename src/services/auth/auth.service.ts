@@ -186,34 +186,39 @@ export default class AuthService {
 
   static async handleSignInUser(signInData: ISignInUserDTO): Promise<ISignInUserResponse> {
     let accessToken: string;
+
+    const userWithEmail = await UserRepository.getUserByEmail(signInData.email);
+    if (!userWithEmail) {
+      throw new ServiceError('Please check your Credentials!');
+    }
+
+    const hashedPassword = userWithEmail.passwordHash;
+    const actualPassword = signInData.password;
+    const checkPassword = await PasswordFactory.verify(actualPassword, hashedPassword);
+    if (!checkPassword) {
+      throw new ServiceError('Please check your Credentials!');
+    }
     const refreshToken = TokenFactory.getRefreshToken();
     const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
     const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
-    try {
-      const userWithEmail = await UserRepository.getUserByEmail(signInData.email);
-      if (userWithEmail) {
-        const hashedPassword = userWithEmail.passwordHash;
-        const actualPassword = signInData.password;
-        const checkPassword = await PasswordFactory.verify(actualPassword, hashedPassword);
-        if (!checkPassword) {
-          throw new ServiceError('Please check your Credentials!');
-        }
 
-        await SessionRepository.createSession(
-          userWithEmail.id,
-          refreshTokenHash.tokenValue,
-          signInData.userAgent,
-          signInData.ipAddress,
-          refreshTokenExpiresAt
-        );
-        accessToken = TokenFactory.getAccessToken({
-          id: userWithEmail.id,
-          email: signInData.email,
-        }).tokenValue;
-      }
-    } catch {
-      throw new ServiceError('Unable to login due to wrong credentials');
+    try {
+      await SessionRepository.createSession(
+        userWithEmail.id,
+        refreshTokenHash.tokenValue,
+        signInData.userAgent,
+        signInData.ipAddress,
+        refreshTokenExpiresAt
+      );
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      throw new ServiceError('Unable to login due to server error');
     }
+
+    accessToken = TokenFactory.getAccessToken({
+      id: userWithEmail.id,
+      email: signInData.email,
+    }).tokenValue;
 
     return {
       message: 'User Login Successfully',

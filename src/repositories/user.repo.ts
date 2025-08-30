@@ -17,7 +17,7 @@ export class UserRepository {
     try {
       return await prisma.users.findUnique({ where: { email } });
     } catch {
-      throw new DatabaseError('You are not registered with entered email');
+      throw new DatabaseError('Database error while fetching user');
     }
   }
 
