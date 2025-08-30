@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
-export default function JoinCreateInventory() {
+type InventoryProps = React.ComponentProps<'div'> & {
+  createInventory: (name: string) => void;
+};
+
+export default function JoinCreateInventory({ createInventory }: InventoryProps) {
   const [inventoryCode, setInventoryCode] = useState('');
   const [inventoryName, setInventoryName] = useState('');
 
@@ -18,7 +22,7 @@ export default function JoinCreateInventory() {
   };
 
   const handleCreate = () => {
-    // TODO: Create new inventory
+    createInventory(inventoryName);
     console.log('Creating inventory:', inventoryName);
   };
 

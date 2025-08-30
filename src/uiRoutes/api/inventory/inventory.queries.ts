@@ -1,23 +1,20 @@
 'use client';
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+
+import { requestCreateInventory } from './inventory.api';
 
 export const useCreateInventory = () => {
-    return useMutation({
-        mutationFn: async (name: string) => {
-            const response = await fetch('/api/inventory/create-inventory', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create inventory');
-            }
-
-            const data = await response.json();
-            return data.inventoryId;
-        }
-}};
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async (name: string) => requestCreateInventory(name),
+    onSuccess: (data) => {
+      console.log(data);
+      router.push('/dashboard');
+    },
+    onError: (error: Error) => {
+      console.error('Create Inventory Failed', error.message);
+    },
+  });
+};
