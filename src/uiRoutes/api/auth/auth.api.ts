@@ -25,6 +25,11 @@ export const requestSignUp = async (email: string, password: string): Promise<vo
   }
 };
 
+export const requestLogIn = async (email: string, password: string): Promise<void> => {
+  const data = { email, password };
+  await authClient.post('/signIn', data);
+};
+
 export const verifyOtp = async (otp: string): Promise<void> => {
   const data = { otp };
   await authClient.post('/signUp/verify-otp', data);
