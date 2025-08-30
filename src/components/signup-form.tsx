@@ -90,7 +90,7 @@ export function SignUpForm({ className, onSignUp, mutateData, ...props }: SignUp
               </div>
               <div className="text-center text-sm">
                 Already have an account?{' '}
-                <Link href="/auth/signin" className="underline underline-offset-4">
+                <Link href="/auth/signIn" className="underline underline-offset-4">
                   Sign In
                 </Link>
               </div>

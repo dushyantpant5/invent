@@ -2,7 +2,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
-import { requestSignUp, verifyOtp } from './auth.api';
+import { requestSignUp, verifyOtp, requestLogIn } from './auth.api';
 
 export const useRequestSignUp = () => {
   const router = useRouter();
@@ -14,6 +14,20 @@ export const useRequestSignUp = () => {
     },
     onError: (error: Error) => {
       console.error('Sign up failed:', error.message);
+    },
+  });
+};
+
+export const useRequestLogIn = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      requestLogIn(email, password),
+    onSuccess: () => {
+      router.push('/dashboard');
+    },
+    onError: (error: Error) => {
+      console.error('Login Failed', error.message);
     },
   });
 };
