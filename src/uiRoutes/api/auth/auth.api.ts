@@ -51,10 +51,22 @@ export const requestSignUp = async (email: string, password: string): Promise<vo
 
 export const requestLogIn = async (email: string, password: string): Promise<void> => {
   const data = { email, password };
-  await authClient.post('/signIn', data);
+  try {
+    await authClient.post('/signIn', data);
+    ToastService.success('Login Successfully!');
+  } catch (loginError) {
+    ToastService.error('Please Check your Credentials');
+    throw new Error('Please Check your Credentials');
+  }
 };
 
 export const verifyOtp = async (otp: string): Promise<void> => {
   const data = { otp };
-  await authClient.post('/signUp/verify-otp', data);
+  try {
+    await authClient.post('/signUp/verify-otp', data);
+    ToastService.success('Account Created Successfully');
+  } catch (otpError) {
+    ToastService.error('Incorect Otp');
+    throw new Error('Incorrect otp');
+  }
 };
