@@ -1,7 +1,7 @@
 import { createApiClient } from '@/uiRoutes/lib/createApiClient';
 import { sendOtpEmail } from '@/helpers/emailjs';
 import ToastService from '@/services/toast/toast.service';
-import { signUpSchema, signInSchema } from '@/zod-validator';
+import { signUpSchema, signInSchema} from '@/zod-validator';
 
 const authClient = createApiClient('/auth');
 
@@ -57,7 +57,6 @@ export const requestLogIn = async (email: string, password: string): Promise<voi
     ToastService.showZodError(zodValidation.error);
     throw new Error('Validation Error: ' + JSON.stringify(zodValidation.error.format()));
   }
-  //  const data = { email, password };
   try {
     await authClient.post('/signIn', data);
     ToastService.success('Login Successfully!');
