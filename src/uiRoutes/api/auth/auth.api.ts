@@ -51,7 +51,12 @@ export const requestSignUp = async (email: string, password: string): Promise<vo
 
 export const requestLogIn = async (email: string, password: string): Promise<void> => {
   const data = { email, password };
-  await authClient.post('/signIn', data);
+  try {
+    await authClient.post('/signIn', data);
+  } catch (error) {
+    console.error('Login failed:', error);
+    throw error;
+  }
 };
 
 export const verifyOtp = async (otp: string): Promise<void> => {
