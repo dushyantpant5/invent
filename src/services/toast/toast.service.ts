@@ -1,4 +1,6 @@
 import { toast } from 'sonner';
+import { ZodError } from 'zod';
+
 export default class ToastService {
   static success(message: string) {
     toast.success(message);
@@ -29,5 +31,22 @@ export default class ToastService {
       success: options.success || 'Success!',
       error: options.error || 'Error occurred',
     });
+  }
+
+  static showZodError(error: unknown) {
+    if (error instanceof ZodError) {
+      error.issues.forEach((issue) => {
+        const field = issue.path.length > 0 ? issue.path.join('.') : 'Global';
+        const message = this.formatErrorMessage(issue.message);
+        console.log(`Field Error [${field}]: ${message}`);
+        ToastService.error(`${message}`);
+      });
+    } else {
+      ToastService.error('An unknown validation error occurred');
+    }
+  }
+
+  private static formatErrorMessage(errorMessage: string): string {
+    return errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1).toLowerCase();
   }
 }
