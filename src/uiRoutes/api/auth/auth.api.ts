@@ -55,6 +55,7 @@ export const requestLogIn = async (email: string, password: string): Promise<voi
     await authClient.post('/signIn', data);
     ToastService.success('Login Successfully!');
   } catch (loginError) {
+    console.error('Error during login:', loginError);
     ToastService.error('Please Check your Credentials');
     throw new Error('Please Check your Credentials');
   }
@@ -66,6 +67,7 @@ export const verifyOtp = async (otp: string): Promise<void> => {
     await authClient.post('/signUp/verify-otp', data);
     ToastService.success('Account Created Successfully');
   } catch (otpError) {
+    console.error('Error during login:', otpError);
     ToastService.error('Incorect Otp');
     throw new Error('Incorrect otp');
   }
