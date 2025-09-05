@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { InventoryService } from '@/services/inventory/inventory.service';
 import { setInventoryData } from '@/helpers/cookies';
+import { IInventoryResponseDTO } from '@/types/inventory/inventory.types';
 
 export async function POST(request: Request) {
   try {
@@ -13,11 +14,11 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
     }
 
-    const inventoryId = await InventoryService.createInventory({
+    const createdInventory: IInventoryResponseDTO = await InventoryService.createInventory({
       inventoryName: name,
     });
 
-    if (!inventoryId) {
+    if (!createdInventory?.inventoryId) {
       return new Response(JSON.stringify({ error: 'Failed to create inventory' }), { status: 500 });
     }
 
@@ -28,9 +29,9 @@ export async function POST(request: Request) {
       cookieStore.delete('inventoryData');
     }
 
-    const response = NextResponse.json({ inventoryId }, { status: 201 });
+    const response = NextResponse.json({ data: createdInventory, status: 201 });
 
-    setInventoryData(inventoryId.inventoryId, response);
+    setInventoryData(createdInventory.inventoryId, response);
 
     return response;
   } catch (error) {

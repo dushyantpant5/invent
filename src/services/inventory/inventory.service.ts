@@ -5,11 +5,12 @@ import AuthService from '../auth/auth.service';
 
 import prisma from '@/repositories';
 import { InventoryRepository } from '@/repositories/inventory.repo';
+import { IInventoryResponseDTO } from '@/types/inventory/inventory.types';
 
 export class InventoryService {
   static async createInventory(inventoryData: {
     inventoryName: string;
-  }): Promise<{ inventoryId: string } | null> {
+  }): Promise<IInventoryResponseDTO> {
     if (!inventoryData || !inventoryData.inventoryName) {
       throw new ServiceError('Invalid inventory data');
     }
@@ -47,7 +48,10 @@ export class InventoryService {
 
         return inventoryId;
       });
-      return createdInventoryId;
+      return {
+        inventoryId: createdInventoryId.inventoryId,
+        inventoryName: inventoryData.inventoryName,
+      };
     } catch (error) {
       if (error instanceof ServiceError) {
         throw error;
