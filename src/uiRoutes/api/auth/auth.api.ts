@@ -1,7 +1,7 @@
 import { createApiClient } from '@/uiRoutes/lib/createApiClient';
 import { sendOtpEmail } from '@/helpers/emailjs';
 import ToastService from '@/services/toast/toast.service';
-import { signUpSchema, signInSchema} from '@/zod-validator';
+import { signUpSchema, signInSchema } from '@/zod-validator';
 
 const authClient = createApiClient('/auth');
 
