@@ -59,6 +59,42 @@ export class InventoryService {
       throw new ServiceError('An unexpected error occurred while creating inventory');
     }
   }
+  public static async joinInventory(code: string): Promise<{ inventoryId: string; name: string }> {
+    try {
+      const validateInventory = await InventoryRepository.verifyInventory({
+        code: code,
+      });
+      if (!validateInventory) {
+        throw new ServiceError('Entered Inventory code is Incorrect');
+      }
+      const userData = await AuthService.getUserSession();
+      console.log('code', code);
+      console.log('userdata', userData);
+      console.log('validateInventory', validateInventory);
+      if (!userData?.id) {
+        throw new ServiceError('User session not found');
+      }
+      const createdInventory = await prisma.$transaction(async (tx) => {
+        const inventoryData = await InventoryRepository.createInventoryRoleData({
+          inventoryId: validateInventory.inventoryId,
+          userId: userData?.id,
+          role: 'staff',
+          tx,
+        });
+        return inventoryData;
+      });
+      console.log('createdInventory', createdInventory);
+      return {
+        inventoryId: createdInventory.inventoryId,
+        name: createdInventory.name,
+      };
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        throw error;
+      }
+      throw new ServiceError('An unexpected error occurred while creating inventory');
+    }
+  }
   private static async genereateUniqueInventoryCode(): Promise<string> {
     let code = '';
     let exists = true;
