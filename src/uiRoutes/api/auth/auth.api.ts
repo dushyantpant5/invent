@@ -1,7 +1,7 @@
 import { createApiClient } from '@/uiRoutes/lib/createApiClient';
 import { sendOtpEmail } from '@/helpers/emailjs';
 import ToastService from '@/services/toast/toast.service';
-import { signUpSchema } from '@/zod-validator';
+import { signUpSchema, signInSchema } from '@/zod-validator';
 
 const authClient = createApiClient('/auth');
 
@@ -51,15 +51,30 @@ export const requestSignUp = async (email: string, password: string): Promise<vo
 
 export const requestLogIn = async (email: string, password: string): Promise<void> => {
   const data = { email, password };
+  const zodValidation = signInSchema.safeParse(data);
+
+  if (!zodValidation.success) {
+    ToastService.showZodError(zodValidation.error);
+    throw new Error('Validation Error: ' + JSON.stringify(zodValidation.error.format()));
+  }
   try {
     await authClient.post('/signIn', data);
-  } catch (error) {
-    console.error('Login failed:', error);
-    throw error;
+    ToastService.success('Login Successfully!');
+  } catch (loginError) {
+    console.error('Error during login:', loginError);
+    ToastService.error('Please Check your Credentials');
+    throw new Error('Please Check your Credentials');
   }
 };
 
 export const verifyOtp = async (otp: string): Promise<void> => {
   const data = { otp };
-  await authClient.post('/signUp/verify-otp', data);
+  try {
+    await authClient.post('/signUp/verify-otp', data);
+    ToastService.success('Account Created Successfully');
+  } catch (otpError) {
+    console.error('Error during login:', otpError);
+    ToastService.error('Incorect Otp');
+    throw new Error('Incorrect otp');
+  }
 };
