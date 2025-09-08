@@ -14,7 +14,9 @@ export async function POST(request: Request) {
     }
 
     const joinInventory = await InventoryService.joinInventory(code);
-
+    if (!joinInventory) {
+      return new Response(JSON.stringify({ error: 'Failed to Join Inventory' }), { status: 400 });
+    }
     // Set inventory data in cookies
     const cookieStore = await cookies();
     // Delete any existing inventoryData cookie

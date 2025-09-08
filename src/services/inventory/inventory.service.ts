@@ -68,9 +68,7 @@ export class InventoryService {
         throw new ServiceError('Entered Inventory code is Incorrect');
       }
       const userData = await AuthService.getUserSession();
-      console.log('code', code);
-      console.log('userdata', userData);
-      console.log('validateInventory', validateInventory);
+
       if (!userData?.id) {
         throw new ServiceError('User session not found');
       }
@@ -83,7 +81,7 @@ export class InventoryService {
         });
         return inventoryData;
       });
-      console.log('createdInventory', createdInventory);
+
       return {
         inventoryId: createdInventory.inventoryId,
         name: createdInventory.name,

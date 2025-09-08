@@ -65,15 +65,7 @@ export class InventoryRepository {
       throw new DatabaseError('Failed to verify inventory');
     }
   }
-  // static async joinInventory(data:IInventoryRoleDatabaseRequestDTOWithoutTx): Promise<void> {
-  //   try{
-  //    const {inventoryId, userId, role} = data;
-  //    if(!inventoryId || !userId || !role) {
-  //       throw new DatabaseError('Invalid inventory ID, user ID or role');
-  //    }
-  //   }
 
-  // }
   static async createInventoryRoleData(
     data: IInventoryRoleDatabaseRequestDTO
   ): Promise<{ inventoryId: string; name: string }> {
@@ -100,16 +92,13 @@ export class InventoryRepository {
       if (userRoleExists) {
         throw new DatabaseError('User already has a role in this inventory');
       }
-      console.log('inventoryId', inventoryId);
       const invertoryData = await prisma.inventories.findUnique({
         where: { id: inventoryId },
       });
-      console.log('inventoryData', invertoryData, inventoryId, userId, role);
-      console.log('userid', userId);
+
       if (!invertoryData) {
         throw new DatabaseError('Inventory not found');
       }
-      console.log('tell');
       await tx.user_inventory_roles.create({
         data: {
           inventory_id: invertoryData.id,
@@ -117,7 +106,6 @@ export class InventoryRepository {
           role,
         },
       });
-      console.log('else');
       return {
         inventoryId: invertoryData?.id,
         name: invertoryData?.name,

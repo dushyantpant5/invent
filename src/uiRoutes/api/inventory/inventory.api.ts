@@ -20,7 +20,7 @@ export const requestCreateInventory = async (name: string): Promise<IInventoryRe
   }
 };
 
-export const joinInventory = async (code: string): Promise<IInventoryResponseDTO> => {
+export const requestJoinInventory = async (code: string): Promise<IInventoryResponseDTO> => {
   const data = { code };
   try {
     const response = await inventoryClient.post<TInventoryAxiosResponseDTO>(
