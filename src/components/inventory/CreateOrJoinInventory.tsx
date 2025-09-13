@@ -10,13 +10,16 @@ import { Label } from '@/components/ui/label';
 
 type InventoryProps = React.ComponentProps<'div'> & {
   createInventory: (name: string) => void;
+  joinInventory: (code: string) => void;
 };
 
-export default function JoinCreateInventory({ createInventory }: InventoryProps) {
+export default function JoinCreateInventory({ createInventory, joinInventory }: InventoryProps) {
   const [inventoryCode, setInventoryCode] = useState('');
   const [inventoryName, setInventoryName] = useState('');
 
   const handleJoin = () => {
+    console.log('code', inventoryCode);
+    joinInventory(inventoryCode);
     // TODO: Join inventory with code
     console.log('Joining inventory with code:', inventoryCode);
   };

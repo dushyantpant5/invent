@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
-import { requestCreateInventory } from './inventory.api';
+import { requestCreateInventory, requestJoinInventory } from './inventory.api';
 
 export const useCreateInventory = () => {
   const router = useRouter();
@@ -15,6 +15,20 @@ export const useCreateInventory = () => {
     },
     onError: (error: Error) => {
       console.error('Create Inventory Failed', error.message);
+    },
+  });
+};
+
+export const useJoinInventory = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async (code: string) => requestJoinInventory(code),
+    onSuccess: (data) => {
+      console.log(data);
+      router.push('/dashboard');
+    },
+    onError: (error: Error) => {
+      console.error('Join Inventory Failed', error.message);
     },
   });
 };

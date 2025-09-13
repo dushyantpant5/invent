@@ -7,6 +7,9 @@ export interface ICreateInventoryDatabaseRequestDTO {
   tx: Prisma.TransactionClient;
 }
 
+export interface InventoryCode {
+  code: string;
+}
 export type TInventoryAxiosResponseDTO = INextResponse<{
   inventoryId: string;
   inventoryName: string;
@@ -32,4 +35,10 @@ export type IInventoryRoleDatabaseRequestDTO = {
   userId: string;
   role: UserRole;
   tx: Prisma.TransactionClient;
+};
+
+export type IInventoryRoleDatabaseRequestDTOWithoutTx = {
+  inventoryId: string;
+  userId: string;
+  role: UserRole;
 };

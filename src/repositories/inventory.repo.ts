@@ -4,6 +4,7 @@ import {
   IInventoryCodeDatabaseRequestDTO,
   IInventoryDatabaseResponseDTO,
   IInventoryRoleDatabaseRequestDTO,
+  InventoryCode,
 } from '../types/inventory/inventory.types';
 import prisma from '.';
 
@@ -47,7 +48,27 @@ export class InventoryRepository {
       throw new DatabaseError('Failed to create inventory code');
     }
   }
-  static async createInventoryRoleData(data: IInventoryRoleDatabaseRequestDTO): Promise<void> {
+  static async verifyInventory(data: InventoryCode): Promise<IInventoryDatabaseResponseDTO> {
+    try {
+      const { code } = data;
+      if (!code) {
+        throw new DatabaseError('Invalid inventory ID or code');
+      }
+      const inventoryExists = await prisma.inventory_codes.findUnique({
+        where: { code: code },
+      });
+      if (!inventoryExists) {
+        throw new DatabaseError('Wrong Inventory Code');
+      }
+      return { inventoryId: inventoryExists.inventoryId };
+    } catch {
+      throw new DatabaseError('Failed to verify inventory');
+    }
+  }
+
+  static async createInventoryRoleData(
+    data: IInventoryRoleDatabaseRequestDTO
+  ): Promise<{ inventoryId: string; name: string }> {
     try {
       const { inventoryId, userId, role, tx } = data;
       if (!inventoryId || !userId || !role) {
@@ -71,14 +92,24 @@ export class InventoryRepository {
       if (userRoleExists) {
         throw new DatabaseError('User already has a role in this inventory');
       }
+      const invertoryData = await prisma.inventories.findUnique({
+        where: { id: inventoryId },
+      });
 
+      if (!invertoryData) {
+        throw new DatabaseError('Inventory not found');
+      }
       await tx.user_inventory_roles.create({
         data: {
-          inventory_id: inventoryId,
+          inventory_id: invertoryData.id,
           user_id: userId,
           role,
         },
       });
+      return {
+        inventoryId: invertoryData?.id,
+        name: invertoryData?.name,
+      };
     } catch {
       throw new DatabaseError('Failed to create inventory role');
     }
