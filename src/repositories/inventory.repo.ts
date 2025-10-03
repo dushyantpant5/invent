@@ -69,51 +69,70 @@ export class InventoryRepository {
   static async createInventoryRoleData(
     data: IInventoryRoleDatabaseRequestDTO
   ): Promise<{ inventoryId: string; name: string }> {
+    const { inventoryId, userId, role, tx } = data;
+
+    // Validate input early
+    if (!tx) {
+      throw new DatabaseError('Transaction (tx) is required');
+    }
+    if (!inventoryId || !userId || !role) {
+      throw new DatabaseError('Invalid inventory ID, user ID or role');
+    }
+
     try {
-      const { inventoryId, userId, role, tx } = data;
-      if (!inventoryId || !userId || !role) {
-        throw new DatabaseError('Invalid inventory ID, user ID or role');
+      const inventoryData = await tx.inventories.findUnique({
+        where: { id: inventoryId },
+        select: { id: true, name: true },
+      });
+
+      if (!inventoryData) {
+        throw new DatabaseError(`Inventory not found (id=${inventoryId})`);
       }
-      //Check if the user exists
+
       const userExists = await tx.users.findUnique({
         where: { id: userId },
+        select: { id: true },
       });
       if (!userExists) {
-        throw new DatabaseError('User does not exist');
+        throw new DatabaseError(`User not found (id=${userId})`);
       }
-      // Check is the data exists for user_inventory_roles table for this user
       const userRoleExists = await tx.user_inventory_roles.findFirst({
         where: {
           inventory_id: inventoryId,
           user_id: userId,
         },
+        select: { id: true },
       });
-
       if (userRoleExists) {
-        throw new DatabaseError('User already has a role in this inventory');
+        throw new DatabaseError(`User ${userId} already has a role in inventory ${inventoryId}`);
       }
-      const invertoryData = await prisma.inventories.findUnique({
-        where: { id: inventoryId },
-      });
 
-      if (!invertoryData) {
-        throw new DatabaseError('Inventory not found');
-      }
       await tx.user_inventory_roles.create({
         data: {
-          inventory_id: invertoryData.id,
+          inventory_id: inventoryData.id,
           user_id: userId,
           role,
         },
       });
+
       return {
-        inventoryId: invertoryData?.id,
-        name: invertoryData?.name,
+        inventoryId: inventoryData.id,
+        name: inventoryData.name,
       };
-    } catch {
-      throw new DatabaseError('Failed to create inventory role');
+    } catch (err: any) {
+      if (err instanceof DatabaseError) {
+        throw err;
+      }
+
+      if (err?.code) {
+        throw new DatabaseError(
+          `Prisma error ${err.code}: ${err.message ?? 'Unknown Prisma error'}`
+        );
+      }
+      throw new DatabaseError(`Failed to create inventory role: ${err?.message ?? String(err)}`);
     }
   }
+
   static async checkInventoryCodeExists(code: string): Promise<boolean> {
     try {
       const inventoryCode = await prisma.inventory_codes.findUnique({ where: { code } });

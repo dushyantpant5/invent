@@ -14,49 +14,50 @@ export class InventoryService {
     if (!inventoryData || !inventoryData.inventoryName) {
       throw new ServiceError('Invalid inventory data');
     }
+    const userSession = await AuthService.getUserSession();
+    const userId = userSession?.id;
+    if (!userId) {
+      throw new ServiceError('User session not found');
+    }
+
     try {
       const createdInventoryId = await prisma.$transaction(async (tx) => {
         // Create inventory in the database
-        const inventoryId = await InventoryRepository.createInventory({
+        const inventory = await InventoryRepository.createInventory({
           name: inventoryData.inventoryName,
           tx,
         });
 
-        if (!inventoryId) {
+        if (!inventory || !inventory.inventoryId) {
           throw new ServiceError('Failed to create inventory');
         }
 
         // Create inventory code database
         const inventoryCode = await this.genereateUniqueInventoryCode();
+
         await InventoryRepository.createInventoryCodeData({
-          inventoryId: inventoryId.inventoryId,
+          inventoryId: inventory.inventoryId,
           code: inventoryCode,
           tx,
         });
 
         // Create inventory role data
-        const userData = await AuthService.getUserSession();
-        if (!userData?.id) {
-          throw new ServiceError('User session not found');
-        }
         await InventoryRepository.createInventoryRoleData({
-          inventoryId: inventoryId.inventoryId,
-          userId: userData?.id,
+          inventoryId: inventory.inventoryId,
+          userId: userId,
           role: 'admin', // Default role for the creator of the inventory
           tx,
         });
 
-        return inventoryId;
+        return inventory;
       });
       return {
         inventoryId: createdInventoryId.inventoryId,
         inventoryName: inventoryData.inventoryName,
       };
-    } catch (error) {
-      if (error instanceof ServiceError) {
-        throw error;
-      }
-      throw new ServiceError('An unexpected error occurred while creating inventory');
+    } catch (err: any) {
+      if (err instanceof ServiceError) throw err;
+      throw new ServiceError(`Unexpected: ${err?.message ?? String(err)}`);
     }
   }
   public static async joinInventory(code: string): Promise<{ inventoryId: string; name: string }> {
