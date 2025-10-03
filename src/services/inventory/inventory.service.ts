@@ -55,9 +55,9 @@ export class InventoryService {
         inventoryId: createdInventoryId.inventoryId,
         inventoryName: inventoryData.inventoryName,
       };
-    } catch (err: any) {
+    } catch (err) {
       if (err instanceof ServiceError) throw err;
-      throw new ServiceError(`Unexpected: ${err?.message ?? String(err)}`);
+      throw new ServiceError(`Unexpected: ${err ?? String(err)}`);
     }
   }
   public static async joinInventory(code: string): Promise<{ inventoryId: string; name: string }> {

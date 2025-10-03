@@ -119,17 +119,11 @@ export class InventoryRepository {
         inventoryId: inventoryData.id,
         name: inventoryData.name,
       };
-    } catch (err: any) {
+    } catch (err) {
       if (err instanceof DatabaseError) {
         throw err;
       }
-
-      if (err?.code) {
-        throw new DatabaseError(
-          `Prisma error ${err.code}: ${err.message ?? 'Unknown Prisma error'}`
-        );
-      }
-      throw new DatabaseError(`Failed to create inventory role: ${err?.message ?? String(err)}`);
+      throw new DatabaseError(`Failed to create inventory role: ${err ?? String(err)}`);
     }
   }
 
