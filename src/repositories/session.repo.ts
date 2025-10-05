@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './index';
 import { DatabaseError } from './lib';
 
+import { Token } from '@/services/auth/token-factory/token.class';
+
 export class SessionRepository {
   static async createSession(
     userId: string,
@@ -24,6 +26,23 @@ export class SessionRepository {
       });
     } catch {
       throw new DatabaseError('Failed to create session');
+    }
+  }
+
+  static async getUseIdByRefreshToken(token: Token): Promise<string | undefined> {
+    try {
+      const userId = await prisma.sessions.findFirst({
+        where: {
+          refreshTokenHash: token,
+        },
+        orderBy: { expiresAt: 'desc' },
+        select: {
+          userId: true,
+        },
+      });
+      return userId;
+    } catch {
+      throw new DatabaseError('Failed to fetch userif from Refresh token');
     }
   }
 }

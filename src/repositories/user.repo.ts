@@ -21,6 +21,21 @@ export class UserRepository {
     }
   }
 
+  static async getUserEmailById(id: string) {
+    try {
+      return await prisma.users.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          email: true,
+        },
+      });
+    } catch {
+      throw new DatabaseError('Failed to fetch user email by Id');
+    }
+  }
+
   //This method is used in a transaction, so it accepts a Prisma.TransactionClient
   static async createUser(
     data: { email: string; passwordHash: string },

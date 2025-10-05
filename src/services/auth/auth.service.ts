@@ -260,4 +260,24 @@ export default class AuthService {
     }
     return { email, password };
   }
+
+  static async getUserIdFromRefreshToken(token: string) {
+    try {
+      const userId = await SessionRepository.getUseIdByRefreshToken(token);
+      return userId;
+    } catch (error) {
+      console.error('Failed to fetch UserId:', error);
+      throw new ServiceError('Unable to fetch userId from Refresh token');
+    }
+  }
+
+  static async getEmailFromUserId(userId: string) {
+    try {
+      const userMail = await UserRepository.getUserEmailById(userId);
+      return userMail;
+    } catch (error) {
+      console.error('Failed to fetch Email:', error);
+      throw new ServiceError('Unable to fetch userEmail from userId');
+    }
+  }
 }

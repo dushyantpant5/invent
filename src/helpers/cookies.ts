@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 import { encryptInventoryData, encryptSignupPayload } from './encryption';
 
+import { Token } from '@/services/auth/token-factory/token.class';
 import { AccessTokenCookieTIme, RefreshTokenCookieTime } from '@/constants/tokens.constant';
+
+const accessToken: string = 'accessToken';
+const refreshToken: string = 'refreshToken';
 
 const setAccessToken = async (token: string, response: NextResponse) => {
   response.cookies.set({
@@ -76,4 +81,31 @@ const setInventoryData = (inventoryId: string, response: NextResponse) => {
   return response;
 };
 
-export { setTokensAtTheTimeOfSignUp, setAccessToken, setSignUpData, setInventoryData };
+const getAccessToken = async (): Promise<Token | null> => {
+  const cookieStore = await cookies();
+  const accessTokenValue = cookieStore.get(accessToken);
+  // Return access token
+  // If the access token is not found, return null
+  if (accessTokenValue) {
+    return new Token(accessTokenValue.value);
+  }
+  return null;
+};
+
+const getRefreshToken = async (): Promise<Token | null> => {
+  const cookieStore = await cookies();
+  const refreshTokenValue = cookieStore.get(refreshToken);
+  if (!refreshTokenValue?.value) {
+    return null;
+  }
+  return new Token(refreshTokenValue?.value);
+};
+
+export {
+  setTokensAtTheTimeOfSignUp,
+  setAccessToken,
+  setSignUpData,
+  setInventoryData,
+  getAccessToken,
+  getRefreshToken,
+};
