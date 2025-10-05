@@ -27,18 +27,20 @@ export async function middleware(request: NextRequest) {
       const userId = await AuthService.getUserIdFromRefreshToken(hashedRefreshToken.tokenValue);
       if (userId) {
         const userMail = await AuthService.getEmailFromUserId(userId);
-        const payload: IAccessTokenPayload = {
-          id: userId,
-          email: userMail,
-        };
+        if (userMail) {
+          const payload: IAccessTokenPayload = {
+            id: userId,
+            email: userMail,
+          };
 
-        // generate token
-        const accessToken = TokenFactory.getAccessToken(payload);
-        if (accessToken) {
-          const response = NextResponse.next();
-          await setAccessToken(accessToken.tokenValue, response);
-        } else {
-          console.log('Failed to get Access Token');
+          // generate token
+          const accessToken = TokenFactory.getAccessToken(payload);
+          if (accessToken) {
+            const response = NextResponse.next();
+            await setAccessToken(accessToken.tokenValue, response);
+          } else {
+            console.log('Failed to get Access Token');
+          }
         }
       }
     } catch (error) {
