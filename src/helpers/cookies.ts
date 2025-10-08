@@ -39,14 +39,14 @@ const setTokensAtTheTimeOfSignUp = (
   setRefreshToken(refreshToken, response);
 };
 
-const setSignUpData = (
+const setSignUpData = async (
   signUpPayload: {
     email: string;
     password: string;
   },
   response: NextResponse
 ) => {
-  const encrypted = encryptSignupPayload(signUpPayload);
+  const encrypted = await encryptSignupPayload(signUpPayload);
 
   response.cookies.set({
     name: 'userPayload',
@@ -61,8 +61,8 @@ const setSignUpData = (
   return response;
 };
 
-const setInventoryData = (inventoryId: string, response: NextResponse) => {
-  const encryptedInventoryData = encryptInventoryData(inventoryId);
+const setInventoryData = async (inventoryId: string, response: NextResponse) => {
+  const encryptedInventoryData = await encryptInventoryData(inventoryId);
 
   response.cookies.set({
     name: 'inventoryData',

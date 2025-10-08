@@ -254,7 +254,7 @@ export default class AuthService {
       throw new ServiceError('No user data found in cookies');
     }
 
-    const { email, password } = decryptSignUpPayload(encryptedPayload);
+    const { email, password } = await decryptSignUpPayload(encryptedPayload);
     if (!email || !password) {
       throw new ServiceError('Invalid user data in cookies');
     }

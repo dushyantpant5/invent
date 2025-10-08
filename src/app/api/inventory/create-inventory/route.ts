@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ data: createdInventory, status: 201 });
 
-    setInventoryData(createdInventory.inventoryId, response);
+    await setInventoryData(createdInventory.inventoryId, response);
 
     return response;
   } catch (error) {
