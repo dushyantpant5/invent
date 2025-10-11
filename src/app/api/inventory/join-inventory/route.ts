@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ data: joinInventory, status: 201 });
 
-    setInventoryData(joinInventory.inventoryId, response);
+    await setInventoryData(joinInventory.inventoryId, response);
 
     return response;
   } catch (error) {

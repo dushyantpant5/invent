@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ message, otp }, { status: 201 });
 
-    setSignUpData({ email, password }, response);
+    await setSignUpData({ email, password }, response);
 
     return response;
   } catch (error) {
