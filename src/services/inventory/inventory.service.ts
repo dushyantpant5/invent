@@ -6,75 +6,101 @@ import AuthService from '../auth/auth.service';
 import prisma from '@/repositories';
 import { InventoryRepository } from '@/repositories/inventory.repo';
 import { IInventoryResponseDTO } from '@/types/inventory/inventory.types';
+import { DatabaseError } from '@/repositories/lib';
 
 export class InventoryService {
-  static async createInventory(inventoryData: {
-    inventoryName: string;
-  }): Promise<IInventoryResponseDTO> {
-    if (!inventoryData || !inventoryData.inventoryName) {
-      throw new ServiceError('Invalid inventory data');
-    }
+  public static async createInventory(data: { name: string }): Promise<IInventoryResponseDTO> {
+    if (!data || data.name.length === 0) return null;
+
     try {
-      const createdInventoryId = await prisma.$transaction(async (tx) => {
-        // Create inventory in the database
-        const inventoryId = await InventoryRepository.createInventory({
-          name: inventoryData.inventoryName,
-          tx,
-        });
+      // Inventory-User Data
+      const userData = await AuthService.getUserSession();
+      if (!userData?.id) {
+        throw new ServiceError('User session not found');
+      }
 
-        if (!inventoryId) {
-          throw new ServiceError('Failed to create inventory');
+      const userInventoryExists = await InventoryRepository.checkUserInventoryExists({
+        userId: userData.id,
+        name: data.name,
+      });
+
+      if (userInventoryExists) {
+        return {
+          inventoryId: userInventoryExists.inventoryId,
+          inventoryName: userInventoryExists.inventoryName,
+        };
+      }
+
+      const createdInventory = await prisma.$transaction(async (tx) => {
+        try {
+          const newInventory = await InventoryRepository.createInventory({ name: data.name, tx });
+
+          if (!newInventory || !newInventory.inventoryId) {
+            throw new ServiceError('Failed to create new inventory');
+          }
+
+          const codeForNewInventory = await this.genereateUniqueInventoryCode();
+
+          await InventoryRepository.createInventoryCodeData({
+            inventoryId: newInventory.inventoryId,
+            code: codeForNewInventory,
+            tx,
+          });
+
+          await InventoryRepository.createInventoryRoleData({
+            inventoryId: newInventory.inventoryId,
+            userId: userData.id,
+            role: 'admin',
+            tx,
+          });
+
+          return {
+            inventoryId: newInventory.inventoryId,
+          };
+        } catch (error) {
+          console.error('Error details:', error);
+          throw error; // rethrow so Prisma rolls back
         }
-
-        // Create inventory code database
-        const inventoryCode = await this.genereateUniqueInventoryCode();
-        await InventoryRepository.createInventoryCodeData({
-          inventoryId: inventoryId.inventoryId,
-          code: inventoryCode,
-          tx,
-        });
-
-        // Create inventory role data
-        const userData = await AuthService.getUserSession();
-        if (!userData?.id) {
-          throw new ServiceError('User session not found');
-        }
-        await InventoryRepository.createInventoryRoleData({
-          inventoryId: inventoryId.inventoryId,
-          userId: userData?.id,
-          role: 'admin', // Default role for the creator of the inventory
-          tx,
-        });
-
-        return inventoryId;
       });
       return {
-        inventoryId: createdInventoryId.inventoryId,
-        inventoryName: inventoryData.inventoryName,
+        inventoryName: data.name,
+        inventoryId: createdInventory.inventoryId,
       };
     } catch (error) {
-      if (error instanceof ServiceError) {
+      if (error instanceof DatabaseError) {
         throw error;
       }
       throw new ServiceError('An unexpected error occurred while creating inventory');
     }
   }
-  public static async joinInventory(code: string): Promise<{ inventoryId: string; name: string }> {
+  public static async joinInventory(data: { code: string }): Promise<IInventoryResponseDTO> {
+    const { code } = data;
     try {
-      const validateInventory = await InventoryRepository.verifyInventory({
-        code: code,
-      });
-      if (!validateInventory) {
-        throw new ServiceError('Entered Inventory code is Incorrect');
+      const validatedInventory = await InventoryRepository.verifyAndGetInventory({ code: code });
+      if (!validatedInventory) {
+        throw new ServiceError('Entered code is incorrect');
       }
       const userData = await AuthService.getUserSession();
 
       if (!userData?.id) {
         throw new ServiceError('User session not found');
       }
+
+      const userRoleExists = await InventoryRepository.checkUserRoleInInventory({
+        inventoryId: validatedInventory.inventoryId,
+        userId: userData.id,
+      });
+
+      if (userRoleExists) {
+        return {
+          inventoryId: userRoleExists.inventoryId,
+          inventoryName: userRoleExists.inventoryName,
+        };
+      }
+
       const createdInventory = await prisma.$transaction(async (tx) => {
         const inventoryData = await InventoryRepository.createInventoryRoleData({
-          inventoryId: validateInventory.inventoryId,
+          inventoryId: validatedInventory.inventoryId,
           userId: userData?.id,
           role: 'staff',
           tx,
@@ -84,7 +110,7 @@ export class InventoryService {
 
       return {
         inventoryId: createdInventory.inventoryId,
-        name: createdInventory.name,
+        inventoryName: createdInventory.name,
       };
     } catch (error) {
       if (error instanceof ServiceError) {
