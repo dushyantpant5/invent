@@ -15,23 +15,21 @@ export async function POST(request: Request) {
     }
 
     const createdInventory: IInventoryResponseDTO = await InventoryService.createInventory({
-      inventoryName: name,
+      name: name,
     });
 
     if (!createdInventory?.inventoryId) {
       return new Response(JSON.stringify({ error: 'Failed to create inventory' }), { status: 500 });
     }
 
-    // Set inventory data in cookies
     const cookieStore = await cookies();
-    // Delete any existing inventoryData cookie
     if (cookieStore.get('inventoryData')) {
       cookieStore.delete('inventoryData');
     }
 
     const response = NextResponse.json({ data: createdInventory, status: 201 });
 
-    setInventoryData(createdInventory.inventoryId, response);
+    await setInventoryData(createdInventory.inventoryId, response);
 
     return response;
   } catch (error) {
