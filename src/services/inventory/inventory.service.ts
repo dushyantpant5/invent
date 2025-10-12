@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import { cookies } from 'next/headers';
 
 import { ServiceError } from '../lib';
 import AuthService from '../auth/auth.service';
@@ -7,6 +8,7 @@ import prisma from '@/repositories';
 import { InventoryRepository } from '@/repositories/inventory.repo';
 import { IInventoryResponseDTO } from '@/types/inventory/inventory.types';
 import { DatabaseError } from '@/repositories/lib';
+import { decryptInventoryData } from '@/helpers/encryption';
 
 export class InventoryService {
   public static async createInventory(data: { name: string }): Promise<IInventoryResponseDTO> {
@@ -76,10 +78,13 @@ export class InventoryService {
   public static async joinInventory(data: { code: string }): Promise<IInventoryResponseDTO> {
     const { code } = data;
     try {
-      const validatedInventory = await InventoryRepository.verifyAndGetInventory({ code: code });
+      const validatedInventory = await InventoryRepository.verifyAndGetInventory({ code });
+
       if (!validatedInventory) {
-        throw new ServiceError('Entered code is incorrect');
+        console.error('[joinInventory] Invalid code provided:', { code });
+        return null;
       }
+
       const userData = await AuthService.getUserSession();
 
       if (!userData?.id) {
@@ -92,6 +97,7 @@ export class InventoryService {
       });
 
       if (userRoleExists) {
+        console.log('[joinInventory] User already has a role. Returning existing inventory info.');
         return {
           inventoryId: userRoleExists.inventoryId,
           inventoryName: userRoleExists.inventoryName,
@@ -101,24 +107,63 @@ export class InventoryService {
       const createdInventory = await prisma.$transaction(async (tx) => {
         const inventoryData = await InventoryRepository.createInventoryRoleData({
           inventoryId: validatedInventory.inventoryId,
-          userId: userData?.id,
+          userId: userData.id,
           role: 'staff',
           tx,
         });
         return inventoryData;
       });
 
-      return {
+      const result = {
         inventoryId: createdInventory.inventoryId,
         inventoryName: createdInventory.name,
       };
+
+      return result;
     } catch (error) {
+      console.error('[joinInventory] ERROR - full details', {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        stack: error instanceof Error ? error.stack : 'No stack',
+      });
+
       if (error instanceof ServiceError) {
         throw error;
       }
+
       throw new ServiceError('An unexpected error occurred while creating inventory');
     }
   }
+
+  public static async getInventorySession(): Promise<{ inventoryId: string }> {
+    const cookieStore = await cookies();
+    const encryptedCookieData = cookieStore.get('inventoryData')?.value;
+    if (!encryptedCookieData) {
+      throw new ServiceError('No inventory data found in cookies');
+    }
+    const inventoryData = await decryptInventoryData(encryptedCookieData);
+    if (!inventoryData) {
+      throw new ServiceError('Invalid inventory data');
+    }
+    return {
+      inventoryId: inventoryData,
+    };
+  }
+
+  public static async getUserRoleForInventory(data: {
+    userId: string;
+    inventoryId: string;
+  }): Promise<{ role: string }> {
+    const userRoleExists = await InventoryRepository.checkUserRoleInInventory({
+      inventoryId: data.inventoryId,
+      userId: data.userId,
+    });
+    if (!userRoleExists) throw new ServiceError('User Role for this inventory does not exist');
+    return {
+      role: userRoleExists.role,
+    };
+  }
+
   private static async genereateUniqueInventoryCode(): Promise<string> {
     let code = '';
     let exists = true;

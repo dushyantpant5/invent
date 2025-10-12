@@ -14,6 +14,13 @@ export async function POST(request: Request) {
     }
 
     const joinedInventory = await InventoryService.joinInventory({ code: code });
+
+    if (!joinedInventory) {
+      return new Response(JSON.stringify({ error: 'No inventory found with this code' }), {
+        status: 404,
+      });
+    }
+
     if (!joinedInventory?.inventoryId) {
       return new Response(JSON.stringify({ error: 'Failed to Join Inventory' }), { status: 400 });
     }
