@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto';
 import { cookies } from 'next/headers';
 
 import { ServiceError } from '../lib';
@@ -175,9 +174,8 @@ export class InventoryService {
   }
   private static generateRandomInventoryCode(length: number = 6): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const bytes = randomBytes(length);
-    return Array.from(bytes, (byte) => chars.charCodeAt(byte % chars.length))
-      .map((code) => String.fromCharCode(code))
-      .join('');
+    const randomValues = crypto.getRandomValues(new Uint8Array(length));
+
+    return Array.from(randomValues, (b) => chars[b % chars.length]).join('');
   }
 }
