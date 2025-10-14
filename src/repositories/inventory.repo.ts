@@ -48,20 +48,29 @@ export class InventoryRepository {
       throw new DatabaseError('Failed to create inventory code');
     }
   }
-  static async verifyAndGetInventory(data: InventoryCode): Promise<IInventoryDatabaseResponseDTO> {
+  static async verifyAndGetInventory(
+    data: InventoryCode
+  ): Promise<IInventoryDatabaseResponseDTO | null> {
+    const { code } = data;
+
+    if (!code?.trim()) {
+      throw new DatabaseError('Invalid code');
+    }
+
     try {
-      const { code } = data;
-      if (!code) {
-        throw new DatabaseError('Invalid code');
-      }
       const inventoryExists = await prisma.inventory_codes.findUnique({
-        where: { code: code },
+        where: { code },
       });
+
       if (!inventoryExists) {
-        throw new DatabaseError('Wrong Inventory Code');
+        return null;
       }
       return { inventoryId: inventoryExists.inventoryId };
-    } catch {
+    } catch (error) {
+      console.error('[verifyAndGetInventory] Error verifying inventory:', {
+        message: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+      });
       throw new DatabaseError('Failed to verify inventory');
     }
   }
@@ -125,11 +134,20 @@ export class InventoryRepository {
   static async createInventoryRoleData(
     data: IInventoryRoleDatabaseRequestDTO
   ): Promise<{ inventoryId: string; name: string }> {
+    const { inventoryId, userId, role, tx } = data;
     try {
-      const { inventoryId, userId, role, tx } = data;
-
       if (!inventoryId || !userId || !role) {
+        console.error('[createInventoryRoleData] Validation failed', {
+          inventoryId,
+          userId,
+          role,
+        });
         throw new DatabaseError('Invalid inventory ID, user ID or role');
+      }
+
+      if (!tx) {
+        console.error('[createInventoryRoleData] No tx/client provided');
+        throw new DatabaseError('Database transaction/client (tx) is required');
       }
 
       const userExists = await tx.users.findUnique({
@@ -137,6 +155,7 @@ export class InventoryRepository {
       });
 
       if (!userExists) {
+        console.error('[createInventoryRoleData] User not found', { userId });
         throw new DatabaseError('User does not exist');
       }
 
@@ -148,31 +167,39 @@ export class InventoryRepository {
       });
 
       if (userRoleExists) {
+        console.error('[createInventoryRoleData] User already has role', {
+          inventoryId,
+          userId,
+          existingRole: userRoleExists.role,
+        });
         throw new DatabaseError('User already has a role in this inventory');
       }
 
       const inventoryData = await tx.inventories.findUnique({
         where: { id: inventoryId },
+        select: { id: true, name: true },
       });
 
       if (!inventoryData) {
+        console.error('[createInventoryRoleData] Inventory not found', { inventoryId });
         throw new DatabaseError('Inventory not found');
       }
 
-      await tx.user_inventory_roles.create({
-        data: {
-          inventory_id: inventoryData.id,
-          user_id: userId,
-          role,
-        },
-      });
+      try {
+        await tx.user_inventory_roles.create({
+          data: {
+            inventory_id: inventoryData.id,
+            user_id: userId,
+            role,
+          },
+        });
+      } catch (dbCreateErr) {
+        throw dbCreateErr;
+      }
 
-      return {
-        inventoryId: inventoryData.id,
-        name: inventoryData.name,
-      };
-    } catch (error) {
-      console.error('[createInventoryRoleData] Error:', error);
+      const result = { inventoryId: inventoryData.id, name: inventoryData.name ?? '' };
+      return result;
+    } catch {
       throw new DatabaseError('Failed to create inventory role');
     }
   }
