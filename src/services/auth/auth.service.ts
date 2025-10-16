@@ -82,7 +82,7 @@ export default class AuthService {
     }
     // Generate OTP
     const otp = OtpFactory.generateOtp();
-    const otpHash = OtpFactory.generateOtpHash(otp);
+    const otpHash = await OtpFactory.generateOtpHash(otp);
 
     // This will be used later in production to send OTP to user's email
     // Send OTP to user's email
@@ -134,7 +134,7 @@ export default class AuthService {
     const userSignUpData = await this.getUserSignUpDataFromCookies();
     const hashedPassword = await PasswordFactory.generateHashPassword(userSignUpData.password);
     const refreshToken = TokenFactory.getRefreshToken();
-    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
+    const refreshTokenHash = await TokenFactory.getRefreshTokenHash(refreshToken);
     const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
     let accessToken: string;
 
@@ -199,7 +199,7 @@ export default class AuthService {
       throw new ServiceError('Please check your Credentials!');
     }
     const refreshToken = TokenFactory.getRefreshToken();
-    const refreshTokenHash = TokenFactory.getRefreshTokenHash(refreshToken);
+    const refreshTokenHash = await TokenFactory.getRefreshTokenHash(refreshToken);
     const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
 
     try {

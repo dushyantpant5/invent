@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { randomBytes, createHash } from 'crypto';
 
 import { Token } from './token.class';
 
@@ -19,17 +18,25 @@ export class TokenFactory {
   }
 
   static getRefreshToken(): Token {
-    const raw = randomBytes(64).toString('hex');
-    return new Token(raw);
+    const bytes = new Uint8Array(64);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return new Token(hex);
   }
 
-  static getRefreshTokenHash(token: Token): Token {
+  static async getRefreshTokenHash(token: Token): Promise<Token> {
     if (!(token instanceof Token)) {
       throw new Error('Invalid token instance');
     }
 
-    const hashed = createHash('sha256').update(token.tokenValue).digest('hex');
-    return new Token(hashed);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token.tokenValue);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+    return new Token(hashHex);
   }
 
   static verifyAccessToken(token: string): IAccessTokenPayload {
