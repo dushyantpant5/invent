@@ -24,13 +24,9 @@ export class TokenFactory {
     return new Token(hex);
   }
 
-  static async getRefreshTokenHash(token: Token): Promise<Token> {
-    if (!(token instanceof Token)) {
-      throw new Error('Invalid token instance');
-    }
-
+  static async getRefreshTokenHash(token: string): Promise<Token | null> {
     const encoder = new TextEncoder();
-    const data = encoder.encode(token.tokenValue);
+    const data = encoder.encode(token);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
 
     const hashArray = Array.from(new Uint8Array(hashBuffer));

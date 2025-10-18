@@ -75,7 +75,7 @@ const setInventoryData = async (inventoryId: string, response: NextResponse) => 
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60, // 7 days
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   return response;
@@ -98,7 +98,7 @@ const getRefreshToken = async (): Promise<Token | null> => {
   if (!refreshTokenValue?.value) {
     return null;
   }
-  return new Token(refreshTokenValue?.value);
+  return new Token(refreshTokenValue.value);
 };
 
 export {

@@ -263,8 +263,10 @@ export default class AuthService {
 
   static async getUserIdFromRefreshToken(token: string) {
     try {
+      console.log('token', token);
       const userId = await SessionRepository.getUseIdByRefreshToken(token);
-      return userId;
+      console.log('userId', userId);
+      return userId?.userId;
     } catch (error) {
       console.error('Failed to fetch UserId:', error);
       throw new ServiceError('Unable to fetch userId from Refresh token');
