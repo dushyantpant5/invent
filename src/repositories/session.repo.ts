@@ -26,4 +26,29 @@ export class SessionRepository {
       throw new DatabaseError('Failed to create session');
     }
   }
+
+  static async getSession(tokenHash: string) {
+    try {
+      const sessionData = await prisma.sessions.findUnique({
+        where: { refreshTokenHash: tokenHash, revoked: false },
+      });
+      if (sessionData) return sessionData;
+      return null;
+    } catch {
+      throw new DatabaseError('Failed to get session');
+    }
+  }
+
+  static async revokeSession(sessionId: string, tx: Prisma.TransactionClient = prisma) {
+    try {
+      await tx.sessions.update({
+        where: { id: sessionId },
+        data: {
+          revoked: true,
+        },
+      });
+    } catch {
+      throw new DatabaseError('Failed to revoke session');
+    }
+  }
 }

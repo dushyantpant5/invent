@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import { JWTPayload, jwtVerify, SignJWT } from 'jose';
 
 import { Token } from './token.class';
 
@@ -8,12 +8,12 @@ interface IAccessTokenPayload {
 }
 
 export class TokenFactory {
-  static getAccessToken(payload: IAccessTokenPayload): Token {
+  static async getAccessToken(payload: IAccessTokenPayload): Promise<Token> {
     if (!payload?.id || !payload.email) {
       throw new Error('Invalid payload for access token');
     }
 
-    const tokenValue: string = this.signAccessTokenWithJWT(payload);
+    const tokenValue: string = await this.signAccessTokenWithJWT(payload);
     return new Token(tokenValue);
   }
 
@@ -39,28 +39,44 @@ export class TokenFactory {
     return new Token(hashHex);
   }
 
-  static verifyAccessToken(token: string): IAccessTokenPayload {
-    const secretKey: string | undefined = process.env.JWT_SECRET;
+  static async hashRefreshToken(tokenValue: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(tokenValue);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  }
+
+  static async verifyAccessToken(token: string): Promise<IAccessTokenPayload | null> {
+    const secret: string | undefined = process.env.JWT_SECRET;
+    const encoder = new TextEncoder();
+    const secretKey = encoder.encode(secret);
 
     if (!secretKey) {
       throw new Error('JWT secret key is not defined');
     }
 
     try {
-      const decoded = jwt.verify(token, secretKey) as IAccessTokenPayload;
-      return decoded;
+      const { payload } = await jwtVerify(token, secretKey);
+      return payload as unknown as IAccessTokenPayload;
     } catch {
-      throw new Error('Invalid access token');
+      console.error(' Token verification failed');
+      return null;
     }
   }
 
-  private static signAccessTokenWithJWT(payload: IAccessTokenPayload): string {
-    const secretKey: string | undefined = process.env.JWT_SECRET;
+  private static async signAccessTokenWithJWT(payload: IAccessTokenPayload): Promise<string> {
+    const secretKey = process.env.JWT_SECRET;
+    if (!secretKey) throw new Error('JWT secret key is not defined');
+    const key = new TextEncoder().encode(secretKey);
+    const jwtPayload = payload as unknown as JWTPayload;
+    const token = await new SignJWT(jwtPayload)
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setIssuedAt()
+      .sign(key);
 
-    if (!secretKey) {
-      throw new Error('JWT secret key is not defined');
-    }
-
-    return jwt.sign(payload, secretKey);
+    return token;
   }
 }
