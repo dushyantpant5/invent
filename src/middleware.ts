@@ -16,10 +16,10 @@ function mask(token?: string | null) {
 }
 
 /** Small helper to safely stringify headers or other objects */
-function safeStringify(obj: any) {
+function safeStringify(obj: unknown) {
   try {
     return JSON.stringify(obj);
-  } catch (e) {
+  } catch {
     return String(obj);
   }
 }
@@ -45,13 +45,6 @@ export async function middleware(request: NextRequest) {
       NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? '<not-set>',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? '<not-set>',
       NODE_ENV: process.env.NODE_ENV ?? '<not-set>',
-    });
-
-    // Log whether "process" and "globalThis" are present (Edge vs Node диагностик)
-    console.log('globals:', {
-      has_process: typeof process !== 'undefined',
-      has_globalThis: typeof globalThis !== 'undefined',
-      typeof_globalThis_crypto: typeof (globalThis as any)?.crypto,
     });
 
     // Log incoming request headers (may be large) — careful, will log auth headers
@@ -203,7 +196,7 @@ export async function tryRefreshToken(request: NextRequest, refreshTokenValue: s
     }
 
     // Try parse JSON
-    let data: any = null;
+    let data = null;
     try {
       data = await fetchResp.json();
       console.log('refreshResp.json:', safeStringify(data));
