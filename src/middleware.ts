@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import {
-  clearAuthCookies,
-  getAccessToken,
-  getRefreshToken,
-  setTokensAtTheTimeOfSignUp,
-} from './helpers/cookies';
-import { Token } from './services/auth/token-factory/token.class';
+import { clearAuthCookies, setTokensAtTheTimeOfSignUp } from './helpers/cookies';
 import { TokenFactory } from './services/auth/token-factory/token.factory';
 
 export async function middleware(request: NextRequest) {
   try {
-    const accessTokenRaw: Token | null = await getAccessToken();
-    const refreshTokenRaw: Token | null = await getRefreshToken();
+    const accessTokenRaw = request.cookies.get('accessToken')?.value ?? null;
+    const refreshTokenRaw = request.cookies.get('refreshToken')?.value ?? null;
 
     // No tokens at all
     if (!accessTokenRaw && !refreshTokenRaw) {
@@ -24,12 +18,12 @@ export async function middleware(request: NextRequest) {
 
     // No access but refresh exists
     if (!accessTokenRaw && refreshTokenRaw) {
-      return await tryRefreshToken(request, refreshTokenRaw.tokenValue);
+      return await tryRefreshToken(request, refreshTokenRaw);
     }
 
     // Access token present
     if (accessTokenRaw) {
-      const decodedToken = await TokenFactory.verifyAccessToken(accessTokenRaw.tokenValue);
+      const decodedToken = await TokenFactory.verifyAccessToken(accessTokenRaw);
 
       if (decodedToken) {
         return NextResponse.next();
