@@ -223,6 +223,11 @@ export default class AuthService {
         signInData.ipAddress,
         refreshTokenExpiresAt
       );
+      const count = await SessionRepository.getCountByUserId(userWithEmail.id);
+      if (count > 1) {
+        const latestSessions = await SessionRepository.latestSessions(userWithEmail.id);
+        await SessionRepository.isReplaced(latestSessions[1].id, latestSessions[0].id);
+      }
     } catch (error) {
       console.error('Failed to create session:', error);
       throw new ServiceError('Unable to login due to server error');

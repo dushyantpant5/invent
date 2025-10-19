@@ -7,33 +7,28 @@ datasource db {
   url      = env("DATABSE_URL")
 }
 
-enum UserRole {
-  admin
-  staff
-}
-
 model user_profiles {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @unique @db.Uuid
   fullName  String?
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @db.Timestamptz(6)
-
-  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model users {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email        String   @unique
-  passwordHash String
-  isVerified   Boolean  @default(false)
-  verifiedAt   DateTime?  
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime @default(now()) @db.Timestamptz(6)
-
-  user_profiles        user_profiles?
-  user_inventory_roles user_inventory_roles[]
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                String                 @unique
+  passwordHash         String
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  isVerified           Boolean                @default(false)
+  verifiedAt           DateTime?
+  categories           categories[]
+  products             products[]
   sessions             sessions[]
+  user_inventory_roles user_inventory_roles[]
+  user_profiles        user_profiles?
 }
 
 model sessions {
@@ -45,8 +40,9 @@ model sessions {
   revoked          Boolean  @default(false)
   createdAt        DateTime @default(now()) @db.Timestamptz(6)
   expiresAt        DateTime @db.Timestamptz(6)
-
-  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isReplacedBy     String?
+  session_number   Int      @default(autoincrement())
+  user             users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([revoked])
@@ -58,44 +54,70 @@ model inventories {
   name                 String
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  inventory_codes      inventory_codes[]
   user_inventory_roles user_inventory_roles[]
-
-  inventory_codes inventory_codes[]
 }
 
 model inventory_codes {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  inventoryId  String      @db.Uuid
-  code         String      @unique
-  created_at   DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime    @updatedAt @db.Timestamptz(6)
-
-  inventory    inventories @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inventoryId String      @db.Uuid
+  code        String      @unique
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime    @updatedAt @db.Timestamptz(6)
+  inventory   inventories @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([inventoryId])
 }
 
 model user_inventory_roles {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String   @db.Uuid
-  inventory_id String   @db.Uuid
-  role         UserRole @default(admin)
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime @default(now()) @db.Timestamptz(6)
-
-  inventories inventories @relation(fields: [inventory_id], references: [id], onDelete: Cascade)
-  users       users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String      @db.Uuid
+  inventory_id String      @db.Uuid
+  role         UserRole    @default(admin)
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime    @default(now()) @db.Timestamptz(6)
+  inventories  inventories @relation(fields: [inventory_id], references: [id], onDelete: Cascade)
+  users        users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, inventory_id])
 }
 
 model email_otps {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email      String   
-  otpHash    String   
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  used       Boolean  @default(false) 
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
 
   @@index([email])
+}
+
+model categories {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String     @db.Uuid
+  name        String
+  description String?
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  users       users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products    products[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model products {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String      @db.Uuid
+  category_id String?     @db.Uuid
+  name        String
+  description String?
+  price       Decimal     @db.Decimal(12, 2)
+  quantity    Int         @default(0)
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  categories  categories? @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  users       users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+enum UserRole {
+  admin
+  staff
 }
