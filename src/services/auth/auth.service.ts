@@ -44,6 +44,18 @@ interface ICompleteSignUpRouteDTO {
   ipAddress: string;
 }
 
+interface IRefreshTokenRequestDto {
+  refreshTokenFromCookie: string;
+  userAgent: string;
+  ipAddress: string;
+}
+
+interface IRefreshTokenResponseDto {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
 export default class AuthService {
   static async handleSignUpUser(signUpData: ISignUpUserDTO): Promise<ISignUpUserResponse> {
     const userWithEmail = await UserRepository.checkUserExistsByEmail(signUpData.email);
@@ -164,10 +176,11 @@ export default class AuthService {
           tx
         );
 
-        accessToken = TokenFactory.getAccessToken({
+        const accessTokenObj = await TokenFactory.getAccessToken({
           id: newUser.id,
           email: newUser.email,
-        }).tokenValue;
+        });
+        accessToken = accessTokenObj.tokenValue;
       });
     } catch {
       throw new ServiceError('User registration failed');
@@ -215,10 +228,11 @@ export default class AuthService {
       throw new ServiceError('Unable to login due to server error');
     }
 
-    accessToken = TokenFactory.getAccessToken({
+    const accessTokenObj = await TokenFactory.getAccessToken({
       id: userWithEmail.id,
       email: signInData.email,
-    }).tokenValue;
+    });
+    accessToken = accessTokenObj.tokenValue;
 
     return {
       message: 'User Login Successfully',
@@ -227,13 +241,67 @@ export default class AuthService {
     };
   }
 
+  static async handleRefresh(
+    data: IRefreshTokenRequestDto
+  ): Promise<IRefreshTokenResponseDto | null> {
+    try {
+      const refreshTokenFromCookieHash = await TokenFactory.hashRefreshToken(
+        data.refreshTokenFromCookie
+      );
+      const sessionData = await SessionRepository.getSession(refreshTokenFromCookieHash);
+
+      if (!sessionData || sessionData.revoked || sessionData.expiresAt < new Date()) {
+        return null;
+      }
+
+      const refreshToken = TokenFactory.getRefreshToken();
+      const refreshTokenHash = await TokenFactory.getRefreshTokenHash(refreshToken);
+      const refreshTokenExpiresAt: Date = new Date(Date.now() + RefreshTokenExpiresAt);
+
+      const userObj = await UserRepository.getUserById(sessionData.userId);
+
+      if (!userObj) {
+        throw new ServiceError('Failed while getting user email');
+      }
+
+      let accessToken: string | undefined;
+
+      await prisma.$transaction(async (tx) => {
+        await SessionRepository.revokeSession(sessionData.id, tx);
+
+        await SessionRepository.createSession(
+          sessionData.userId,
+          refreshTokenHash.tokenValue,
+          data.userAgent,
+          data.ipAddress,
+          refreshTokenExpiresAt,
+          tx
+        );
+
+        const accessTokenObj = await TokenFactory.getAccessToken({
+          id: sessionData.userId,
+          email: userObj.email,
+        });
+        accessToken = accessTokenObj.tokenValue;
+      });
+
+      return {
+        message: 'Tokens refreshed successfully',
+        accessToken: accessToken!,
+        refreshToken: refreshToken.tokenValue,
+      };
+    } catch {
+      throw new ServiceError('Unable to refresh tokens due to server error');
+    }
+  }
+
   static async getUserSession(): Promise<{ id: string; userEmail: string }> {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get(AccessToken)?.value;
     if (!accessToken) {
       throw new ServiceError('No access token found in cookies');
     }
-    const userPayload = TokenFactory.verifyAccessToken(accessToken);
+    const userPayload = await TokenFactory.verifyAccessToken(accessToken);
     if (!userPayload) {
       throw new ServiceError('Invalid access token');
     }

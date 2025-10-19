@@ -4,6 +4,15 @@ import { prisma } from './index';
 import { DatabaseError } from './lib';
 
 export class UserRepository {
+  static async getUserById(userId: string) {
+    try {
+      const user = await prisma.users.findUnique({ where: { id: userId } });
+      return user;
+    } catch {
+      throw new DatabaseError('Failed to fetch user by id');
+    }
+  }
+
   static async checkUserExistsByEmail(email: string) {
     try {
       const user = await prisma.users.findUnique({ where: { email } });
