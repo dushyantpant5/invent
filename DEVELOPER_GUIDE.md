@@ -47,6 +47,12 @@ npm run arch-check     # Custom structural check (see section 17)
 # Verify the full build
 npm run build          # TypeScript + Next.js production build
 npm run dev            # Start dev server to test changes manually
+
+# Test suite
+npm run test           # Full centralized Vitest suite (tests/**)
+npm run test:watch     # Watch mode
+npm run test:coverage  # Full suite + V8 coverage report (coverage/index.html)
+npm run test:changed -- <file-or-dir>  # Related tests for changed modules
 ```
 
 ### What runs automatically and when
@@ -60,14 +66,16 @@ npm run dev            # Start dev server to test changes manually
 
 ### What runs on GitHub (CI)
 
-Four separate jobs run in parallel on every pull request. **All four must pass before a PR can be merged.**
+Six separate jobs run in parallel on every pull request. **All six must pass before a PR can be merged.**
 
-| CI Job                 | Command                | Blocks merge on                                 |
-| ---------------------- | ---------------------- | ----------------------------------------------- |
-| **Lint**               | `npm run lint:ci`      | Any ESLint error or warning                     |
-| **Format**             | `npm run format:check` | Any unformatted file                            |
-| **Build**              | `npm run build`        | TypeScript errors, broken imports, JSX errors   |
-| **Architecture Check** | `npm run arch-check`   | Critical structural violations (see section 17) |
+| CI Job                 | Command                 | Blocks merge on                                 |
+| ---------------------- | ----------------------- | ----------------------------------------------- |
+| **Lint**               | `npm run lint:ci`       | Any ESLint error or warning                     |
+| **Format**             | `npm run format:check`  | Any unformatted file                            |
+| **Build**              | `npm run build`         | TypeScript errors, broken imports, JSX errors   |
+| **Architecture Check** | `npm run arch-check`    | Critical structural violations (see section 17) |
+| **Test Suite**         | `npm run test`          | Any failing unit/integration test               |
+| **Coverage**           | `npm run test:coverage` | Coverage threshold or report generation failure |
 
 ### If a hook fails
 

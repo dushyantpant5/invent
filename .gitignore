@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+.vitest
 
 # next.js
 /.next/
@@ -44,6 +45,7 @@ next-env.d.ts
 
 #reports
 audit.md
+test_audit.md
 
 #claude
 .claude
