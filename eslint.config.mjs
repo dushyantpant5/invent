@@ -100,7 +100,7 @@ export default [
               group: ['@/services', '@/services/**'],
               message:
                 'Feature modules must not import from services/. ' +
-                'Services are server-only. Make an HTTP call via the feature\'s *.api.ts file instead.',
+                "Services are server-only. Make an HTTP call via the feature's *.api.ts file instead.",
             },
             {
               group: ['@/repositories', '@/repositories/**'],
@@ -133,8 +133,7 @@ export default [
             {
               group: ['@/repositories', '@/repositories/**'],
               message:
-                'Components must not import from repositories/. ' +
-                'Repositories are server-only.',
+                'Components must not import from repositories/. ' + 'Repositories are server-only.',
             },
           ],
         },

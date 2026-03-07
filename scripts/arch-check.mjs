@@ -86,15 +86,9 @@ function matchesPath(filePath, segment) {
 // ─── Collect all source files ─────────────────────────────────────────────────
 
 const allFiles = getAllFiles(SRC);
-const routeFiles = allFiles.filter(
-  (f) => matchesPath(f, '/app/api/') && f.endsWith('route.ts')
-);
-const serviceFiles = allFiles.filter(
-  (f) => matchesPath(f, '/services/') && !f.endsWith('lib.ts')
-);
-const repoFiles = allFiles.filter(
-  (f) => matchesPath(f, '/repositories/') && !f.endsWith('lib.ts')
-);
+const routeFiles = allFiles.filter((f) => matchesPath(f, '/app/api/') && f.endsWith('route.ts'));
+const serviceFiles = allFiles.filter((f) => matchesPath(f, '/services/') && !f.endsWith('lib.ts'));
+const repoFiles = allFiles.filter((f) => matchesPath(f, '/repositories/') && !f.endsWith('lib.ts'));
 const featureApiFiles = allFiles.filter(
   (f) => matchesPath(f, '/features/') && f.endsWith('.api.ts')
 );
@@ -121,7 +115,7 @@ console.log('─'.repeat(60));
       critical(
         file,
         '`new PrismaClient()` is only allowed in `src/repositories/index.ts`.\n' +
-          '             Import the shared singleton instead: `import prisma from \'@/repositories\''
+          "             Import the shared singleton instead: `import prisma from '@/repositories'"
       );
       violations++;
     }
@@ -305,7 +299,9 @@ if (errorCount === 0 && warnCount === 0) {
 }
 
 if (warnCount > 0) {
-  console.warn(`${YELLOW}${BOLD}⚠ ${warnCount} warning(s)${RESET} — review before shipping to production.`);
+  console.warn(
+    `${YELLOW}${BOLD}⚠ ${warnCount} warning(s)${RESET} — review before shipping to production.`
+  );
 }
 
 if (errorCount > 0) {

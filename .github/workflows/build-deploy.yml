@@ -11,8 +11,8 @@ name: Build & Deploy
 on:
   push:
     branches:
-      - main     # → deploys to Vercel Production
-      - develop  # → deploys to Vercel Preview
+      - main # → deploys to Vercel Production
+      - develop # → deploys to Vercel Preview
 
 jobs:
   # ─── Job 1: Verify ───────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: verify  # verify must pass before deploy runs
+    needs: verify # verify must pass before deploy runs
 
     steps:
       - name: Checkout
