@@ -6,9 +6,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    threads: true,
-    maxThreads: 8,
-    minThreads: 2,
+    pool: 'threads',
+    maxWorkers: 8,
+    fileParallelism: true,
     isolate: true,
     include: ['tests/**/*.test.ts'],
     exclude: [
