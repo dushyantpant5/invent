@@ -15,7 +15,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "arch-check": "node scripts/arch-check.mjs",
-    "prepare": "husky"
+    "memory:update": "node scripts/update-memory.mjs",
+    "prepare": "husky",
+    "generate:openapi": "tsx src/openapi/openapi.generator.ts",
+    "generate:postman": "openapi2postmanv2 -s openapi/openapi.json -o openapi/postman-collection.json -p"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -52,6 +55,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.58.1",
     "sonner": "^2.0.6",
+    "swagger-ui-react": "^5.32.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^3.25.67"
   },
@@ -63,6 +67,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-react": "^5.18.0",
     "@typescript-eslint/eslint-plugin": "^8.34.1",
     "@typescript-eslint/parser": "^8.34.1",
     "@vitest/coverage-v8": "^4.0.18",
@@ -75,12 +80,15 @@
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^16.3.2",
+    "openapi-to-postmanv2": "^6.0.0",
     "prettier": "^3.6.2",
     "prisma": "^6.9.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "zod-to-json-schema": "^3.25.1"
   }
 }
