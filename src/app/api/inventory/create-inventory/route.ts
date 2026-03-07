@@ -1,39 +1,23 @@
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
+import { createInventorySchema } from '@/validators';
 import { InventoryService } from '@/services/inventory/inventory.service';
-import { setInventoryData } from '@/helpers/cookies';
-import { IInventoryResponseDTO } from '@/types/inventory/inventory.types';
+import { setInventoryData } from '@/lib/cookies';
+import { withErrorHandling, parseJsonBody, validationErrorResponse } from '@/lib/route-helpers';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { name } = body;
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const body = await parseJsonBody(request);
+  const validation = createInventorySchema.safeParse(body);
 
-    if (!name || typeof name !== 'string') {
-      return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
-    }
+  if (!validation.success) return validationErrorResponse(validation.error);
 
-    const createdInventory: IInventoryResponseDTO = await InventoryService.createInventory({
-      name: name,
-    });
+  const inventory = await InventoryService.createInventory({ name: validation.data.name });
 
-    if (!createdInventory?.inventoryId) {
-      return new Response(JSON.stringify({ error: 'Failed to create inventory' }), { status: 500 });
-    }
-
-    const cookieStore = await cookies();
-    if (cookieStore.get('inventoryData')) {
-      cookieStore.delete('inventoryData');
-    }
-
-    const response = NextResponse.json({ data: createdInventory, status: 201 });
-
-    await setInventoryData(createdInventory.inventoryId, response);
-
-    return response;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
+  if (!inventory?.inventoryId) {
+    return NextResponse.json({ error: 'Failed to create inventory' }, { status: 500 });
   }
-}
+
+  const response = NextResponse.json({ data: inventory }, { status: 201 });
+  await setInventoryData(inventory.inventoryId, response);
+  return response;
+});

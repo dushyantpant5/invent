@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 
 import InputOTPForm from '@/components/otp-form';
-import { useVerifyOtp } from '@/uiRoutes/api/auth/auth.queries';
+import { useVerifyOtp } from '@/features/auth/auth.queries';
 
 export default function OTPPage() {
   const { mutate: verifyOtpMutaion } = useVerifyOtp();

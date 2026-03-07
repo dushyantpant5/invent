@@ -1,35 +1,29 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
+import { refreshTokenSchema } from '@/validators';
 import AuthService from '@/services/auth/auth.service';
+import {
+  withErrorHandling,
+  extractRequestMeta,
+  parseJsonBody,
+  validationErrorResponse,
+} from '@/lib/route-helpers';
 
-export async function POST(request: Request) {
-  try {
-    const rawBody = await request.text();
-    let body = rawBody ? JSON.parse(rawBody) : {};
-    const { refreshTokenFromCookie } = body;
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const body = await parseJsonBody(request);
+  const validation = refreshTokenSchema.safeParse(body);
 
-    const { 'user-agent': userAgent = 'unknown', 'x-forwarded-for': forwarded } =
-      Object.fromEntries(request.headers);
-    const ipAddress = forwarded?.split(',')[0]?.trim() ?? 'unknown';
+  if (!validation.success) return validationErrorResponse(validation.error);
 
-    const serviceData = await AuthService.handleRefresh({
-      userAgent,
-      ipAddress,
-      refreshTokenFromCookie,
-    });
+  const { userAgent, ipAddress } = extractRequestMeta(request);
+  const { refreshTokenFromCookie } = validation.data;
 
-    if (!serviceData) {
-      return NextResponse.json({ error: 'Failed to refresh' }, { status: 400 });
-    }
+  const result = await AuthService.handleRefresh({ refreshTokenFromCookie, userAgent, ipAddress });
 
-    const { message, accessToken, refreshToken } = serviceData;
-
-    const response = NextResponse.json({ message, accessToken, refreshToken }, { status: 201 });
-
-    return response;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
-    const statusCode = error instanceof Error ? 400 : 500;
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+  if (!result) {
+    return NextResponse.json({ error: 'Session expired. Please sign in again' }, { status: 401 });
   }
-}
+
+  const { message, accessToken, refreshToken } = result;
+  return NextResponse.json({ message, accessToken, refreshToken }, { status: 200 });
+});

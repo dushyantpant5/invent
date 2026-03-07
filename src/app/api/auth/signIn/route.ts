@@ -1,40 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { signInSchema } from '@/zod-validator';
+import { signInSchema } from '@/validators';
 import AuthService from '@/services/auth/auth.service';
-import { setTokensAtTheTimeOfSignUp } from '@/helpers/cookies';
+import { setTokensAtTheTimeOfSignUp } from '@/lib/cookies';
+import {
+  withErrorHandling,
+  extractRequestMeta,
+  parseJsonBody,
+  validationErrorResponse,
+} from '@/lib/route-helpers';
 
-export async function POST(request: Request) {
-  try {
-    const { 'user-agent': userAgent = 'unknown', 'x-forwarded-for': forwarded } =
-      Object.fromEntries(request.headers);
-    const ipAddress = forwarded?.split(',')[0]?.trim() ?? 'unknown';
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const { userAgent, ipAddress } = extractRequestMeta(request);
+  const body = await parseJsonBody(request);
+  const validation = signInSchema.safeParse(body);
 
-    const body = await request.json();
-    const validation = signInSchema.safeParse(body);
+  if (!validation.success) return validationErrorResponse(validation.error);
 
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validation.error.format() },
-        { status: 400 }
-      );
-    }
+  const { email, password } = validation.data;
+  const { message, accessToken, refreshToken } = await AuthService.handleSignInUser({
+    email,
+    password,
+    userAgent,
+    ipAddress,
+  });
 
-    const { email, password } = validation.data;
-
-    const { message, accessToken, refreshToken } = await AuthService.handleSignInUser({
-      email,
-      password,
-      userAgent,
-      ipAddress,
-    });
-
-    const response = NextResponse.json({ message }, { status: 201 });
-    setTokensAtTheTimeOfSignUp(accessToken, refreshToken, response);
-    return response;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
-    const statusCode = error instanceof Error ? 400 : 500;
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
-  }
-}
+  const response = NextResponse.json({ message }, { status: 200 });
+  setTokensAtTheTimeOfSignUp(accessToken, refreshToken, response);
+  return response;
+});

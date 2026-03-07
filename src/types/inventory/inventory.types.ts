@@ -36,9 +36,3 @@ export type IInventoryRoleDatabaseRequestDTO = {
   role: UserRole;
   tx: Prisma.TransactionClient;
 };
-
-export type IInventoryRoleDatabaseRequestDTOWithoutTx = {
-  inventoryId: string;
-  userId: string;
-  role: UserRole;
-};

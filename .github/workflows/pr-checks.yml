@@ -1,0 +1,124 @@
+name: PR Checks
+
+# Runs on every pull request targeting any branch.
+# These checks must pass before a PR can be merged.
+# Configure branch protection rules in GitHub Settings → Branches to enforce this.
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  # ─── Job 1: Lint ─────────────────────────────────────────────────────────────
+  # Checks code style, import boundaries, unused imports, and TypeScript lint rules.
+  # Any ESLint warning or error fails this job (--max-warnings=0).
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run ESLint
+        run: npm run lint:ci
+
+  # ─── Job 2: Format ───────────────────────────────────────────────────────────
+  # Verifies Prettier formatting without modifying files.
+  # If this fails, run `npm run format` locally and commit the result.
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+  # ─── Job 3: TypeScript Build ─────────────────────────────────────────────────
+  # Runs the full Next.js production build.
+  # Catches TypeScript errors, missing imports, and broken JSX that lint alone misses.
+  build:
+    name: Build (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Set required env vars for build
+        run: |
+          echo "NEXT_PUBLIC_API_BASE_URL=https://placeholder.example.com/api" >> $GITHUB_ENV
+          echo "USER_PAYLOAD_SECRET=ci-placeholder-secret-32-characters!!" >> $GITHUB_ENV
+
+      - name: Build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_BASE_URL: ${{ env.NEXT_PUBLIC_API_BASE_URL }}
+          USER_PAYLOAD_SECRET: ${{ env.USER_PAYLOAD_SECRET }}
+        run: npm run build
+
+  # ─── Job 4: Architecture Check ───────────────────────────────────────────────
+  # Runs the custom architecture enforcement script.
+  # Checks patterns that ESLint import rules cannot catch:
+  #   CRITICAL (exits 1 — blocks merge):
+  #     - new PrismaClient() outside repositories/index.ts
+  #     - Route handlers missing withErrorHandling
+  #     - Side effects (toasts, navigation) in feature API functions
+  #     - Services calling prisma model methods directly
+  #     - Repositories importing from services
+  #   WARNING (logged but does not block merge):
+  #     - console.log in server-side code
+  #     - useMutation used directly instead of useNavigatingMutation
+  #     - Inline type definitions in service files
+  arch-check:
+    name: Architecture Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run architecture check
+        run: npm run arch-check

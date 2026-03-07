@@ -1,75 +1,90 @@
-name: Vercel Build & Deploy
+name: Build & Deploy
+
+# Runs only when code lands on a deployable branch (after PR merge or direct push).
+# PR quality checks (lint, format, TypeScript, architecture) are handled separately
+# by pr-checks.yml and must pass before any PR can be merged.
+#
+# This workflow has one job — deploying to Vercel. But it includes a quick pre-deploy
+# safety net (arch-check + build) to catch any issues from direct pushes that bypassed
+# the normal PR flow.
 
 on:
   push:
     branches:
-      - '**'
-  pull_request:
-    branches:
-      - '**'
+      - main     # → deploys to Vercel Production
+      - develop  # → deploys to Vercel Preview
 
 jobs:
-  build-and-deploy:
-    name: Build & Lint
+  # ─── Job 1: Verify ───────────────────────────────────────────────────────────
+  # Fast pre-deploy safety check. Ensures the code is structurally sound
+  # and compiles before we attempt a deployment.
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Set DATABASE_URL
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}" >> $GITHUB_ENV
-          else
-            echo "DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}" >> $GITHUB_ENV
-          fi
-
-      - name: Set API Base URL
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "NEXT_PUBLIC_API_BASE_URL=https://invent-delta.vercel.app/api" >> $GITHUB_ENV
-          else
-            echo "NEXT_PUBLIC_API_BASE_URL=https://invent-dushyantpant5-dushyantpant5s-projects.vercel.app/api" >> $GITHUB_ENV
-          fi
-
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Run ESLint
-        run: npx eslint . --max-warnings=0
+      - name: Architecture check
+        # Catches critical structural violations (new PrismaClient, missing
+        # withErrorHandling, side effects in API functions, etc.) as a safety
+        # net for any code that reached this branch without going through a PR.
+        run: npm run arch-check
 
-      - name: Build project
+      - name: Build
         env:
           NODE_ENV: production
-          NEXT_PUBLIC_API_BASE_URL: ${{ env.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ github.ref == 'refs/heads/main' && 'https://invent-delta.vercel.app/api' || 'https://invent-dushyantpant5-dushyantpant5s-projects.vercel.app/api' }}
+          DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_DATABASE_URL || secrets.DEV_DATABASE_URL }}
           USER_PAYLOAD_SECRET: ${{ secrets.USER_PAYLOAD_SECRET }}
         run: npm run build
 
+  # ─── Job 2: Deploy ───────────────────────────────────────────────────────────
+  # Deploys to Vercel only after the verify job passes.
+  # main   → Production deployment
+  # develop → Preview deployment
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: verify  # verify must pass before deploy runs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Install Vercel CLI
-        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
         run: npm install -g vercel
 
-      # Deploy to Vercel Production
       - name: Deploy to Vercel (Production)
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        if: github.ref == 'refs/heads/main'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          vercel --prod --yes --token=$VERCEL_TOKEN
+        run: vercel --prod --yes --token=$VERCEL_TOKEN
 
-      # Deploy to Vercel Preview
       - name: Deploy to Vercel (Preview)
-        if: ${{ github.ref == 'refs/heads/develop' && github.event_name == 'push' }}
+        if: github.ref == 'refs/heads/develop'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          vercel --yes --token=$VERCEL_TOKEN
+        run: vercel --yes --token=$VERCEL_TOKEN

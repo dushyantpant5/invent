@@ -1,0 +1,10 @@
+# pre-push: runs on every `git push`
+# Runs the full TypeScript build and architecture check before code leaves your machine.
+# This catches cross-file type errors and structural violations that lint-staged misses.
+# Fix all errors before the push is accepted.
+
+echo "Running architecture check..."
+npm run arch-check
+
+echo "Running full build (TypeScript + Next.js)..."
+npm run build

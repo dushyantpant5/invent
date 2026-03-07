@@ -1,7 +1,7 @@
 // middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-import { clearAuthCookies, setTokensAtTheTimeOfSignUp } from './helpers/cookies';
+import { clearAuthCookies, setTokensAtTheTimeOfSignUp } from './lib/cookies';
 import { TokenFactory } from './services/auth/token-factory/token.factory';
 
 export async function middleware(request: NextRequest) {

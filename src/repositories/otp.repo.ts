@@ -37,4 +37,16 @@ export class OtpRepository {
       throw new DatabaseError('Failed to mark OTP as used');
     }
   }
+
+  static async hasEmailBeenVerifiedByOtp(email: string): Promise<boolean> {
+    try {
+      const latestOtp = await prisma.email_otps.findFirst({
+        where: { email },
+        orderBy: { createdAt: 'desc' },
+      });
+      return !!latestOtp && latestOtp.used;
+    } catch {
+      throw new DatabaseError('Failed to fetch OTP verification status');
+    }
+  }
 }

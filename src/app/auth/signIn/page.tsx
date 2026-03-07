@@ -2,7 +2,7 @@
 import { GalleryVerticalEnd } from 'lucide-react';
 
 import { LoginForm } from '@/components/login-form';
-import { useRequestLogIn } from '@/uiRoutes/api/auth/auth.queries';
+import { useRequestLogIn } from '@/features/auth/auth.queries';
 
 export default function SignIn() {
   const { mutate: requestLogIn, isPending } = useRequestLogIn();
