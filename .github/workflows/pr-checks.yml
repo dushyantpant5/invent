@@ -122,3 +122,28 @@ jobs:
 
       - name: Run architecture check
         run: npm run arch-check
+
+  # ─── Job 5: Full Test Suite ─────────────────────────────────────────────────
+  # Runs the centralized Vitest suite under tests/**.
+  # PR cannot be merged unless all tests pass.
+  test:
+    name: Test (Full Suite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run full test suite
+        run: npm run test
