@@ -3,15 +3,11 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './index';
 import { DatabaseError } from './lib';
 
+import { ICreateSessionDTO } from '@/types/auth/auth';
+
 export class SessionRepository {
-  static async createSession(
-    userId: string,
-    refreshTokenHash: string,
-    userAgent: string,
-    ipAddress: string,
-    expiresAt: Date,
-    tx: Prisma.TransactionClient = prisma
-  ) {
+  static async createSession(data: ICreateSessionDTO) {
+    const { userId, refreshTokenHash, userAgent, ipAddress, expiresAt, tx = prisma } = data;
     try {
       return await tx.sessions.create({
         data: {
@@ -43,9 +39,7 @@ export class SessionRepository {
     try {
       await tx.sessions.update({
         where: { id: sessionId },
-        data: {
-          revoked: true,
-        },
+        data: { revoked: true },
       });
     } catch {
       throw new DatabaseError('Failed to revoke session');

@@ -36,10 +36,8 @@ export default class ToastService {
   static showZodError(error: unknown) {
     if (error instanceof ZodError) {
       error.issues.forEach((issue) => {
-        const field = issue.path.length > 0 ? issue.path.join('.') : 'Global';
         const message = this.formatErrorMessage(issue.message);
-        console.log(`Field Error [${field}]: ${message}`);
-        ToastService.error(`${message}`);
+        ToastService.error(message);
       });
     } else {
       ToastService.error('An unknown validation error occurred');

@@ -3,7 +3,7 @@ import { GalleryVerticalEnd } from 'lucide-react';
 import Link from 'next/link';
 
 import { SignUpForm } from '@/components/signup-form';
-import { useRequestSignUp } from '@/uiRoutes/api/auth/auth.queries';
+import { useRequestSignUp } from '@/features/auth/auth.queries';
 
 export default function SignUp() {
   const { mutate: requestSignUp, isPending } = useRequestSignUp();

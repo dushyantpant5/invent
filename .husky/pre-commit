@@ -1,0 +1,5 @@
+# pre-commit: runs on every `git commit`
+# Lints and formats only the files staged for this commit (fast — not the whole codebase).
+# Fix all errors before the commit is accepted.
+
+npx lint-staged

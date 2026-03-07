@@ -61,7 +61,7 @@ export function LoginForm({ className, onLogIn, mutateData, ...props }: LoginFor
                 </div>
                 {error && <div>{error}</div>}
                 <Button type="submit" className="w-full">
-                  {isPending ? 'Logiing' : 'Login'}
+                  {isPending ? 'Logging in...' : 'Login'}
                 </Button>
               </div>
               <div className="text-center text-sm">

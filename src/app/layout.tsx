@@ -1,4 +1,3 @@
-/* eslint-disable import/order */
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
   description: 'Inventory management system for all businesses',
 };
 
-import { ReactQueryProvider } from '../uiRoutes/providers/ReactQueryProvider';
+import { ReactQueryProvider } from '@/providers/ReactQueryProvider';
 import ToastProvider from '@/services/toast/Toaster';
 export default function RootLayout({
   children,

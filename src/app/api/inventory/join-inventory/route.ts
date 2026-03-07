@@ -1,41 +1,23 @@
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
+import { joinInventorySchema } from '@/validators';
 import { InventoryService } from '@/services/inventory/inventory.service';
-import { setInventoryData } from '@/helpers/cookies';
+import { setInventoryData } from '@/lib/cookies';
+import { withErrorHandling, parseJsonBody, validationErrorResponse } from '@/lib/route-helpers';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { code } = body;
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const body = await parseJsonBody(request);
+  const validation = joinInventorySchema.safeParse(body);
 
-    if (!code) {
-      return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
-    }
+  if (!validation.success) return validationErrorResponse(validation.error);
 
-    const joinedInventory = await InventoryService.joinInventory({ code: code });
+  const inventory = await InventoryService.joinInventory({ code: validation.data.code });
 
-    if (!joinedInventory) {
-      return new Response(JSON.stringify({ error: 'No inventory found with this code' }), {
-        status: 404,
-      });
-    }
-
-    if (!joinedInventory?.inventoryId) {
-      return new Response(JSON.stringify({ error: 'Failed to Join Inventory' }), { status: 400 });
-    }
-    const cookieStore = await cookies();
-    if (cookieStore.get('inventoryData')) {
-      cookieStore.delete('inventoryData');
-    }
-
-    const response = NextResponse.json({ data: joinedInventory, status: 201 });
-
-    await setInventoryData(joinedInventory.inventoryId, response);
-
-    return response;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
+  if (!inventory) {
+    return NextResponse.json({ error: 'No inventory found with this code' }, { status: 404 });
   }
-}
+
+  const response = NextResponse.json({ data: inventory }, { status: 200 });
+  await setInventoryData(inventory.inventoryId, response);
+  return response;
+});
