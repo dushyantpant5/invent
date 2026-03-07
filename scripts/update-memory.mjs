@@ -120,10 +120,7 @@ function main() {
   let memory = readMemory('MEMORY.md');
 
   // Replace the "Current State" date line
-  memory = memory.replace(
-    /## Current State \([^)]+\)/,
-    `## Current State (${formatMonth(today)})`
-  );
+  memory = memory.replace(/## Current State \([^)]+\)/, `## Current State (${formatMonth(today)})`);
 
   writeMemory('MEMORY.md', memory);
 
