@@ -1,0 +1,280 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Documentation",
+    "description": "Next.js API routes documentation",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication and session management"
+    },
+    {
+      "name": "Inventory",
+      "description": "Inventory management"
+    }
+  ],
+  "paths": {
+    "/api/auth/signIn": {
+      "post": {
+        "summary": "Sign in user",
+        "description": "Authenticates a user with email and password. Access and refresh tokens are set as HTTP-only cookies.",
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "Login successful. Tokens set as cookies."
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": ["email", "password"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/signUp/request-signup": {
+      "post": {
+        "summary": "Request sign up",
+        "description": "Initiates registration. Sends an OTP to the provided email and stores signup data in a cookie.",
+        "tags": ["Auth"],
+        "responses": {
+          "201": {
+            "description": "OTP sent. Signup data stored in cookie."
+          },
+          "400": {
+            "description": "Validation error or user already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "pattern": "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$"
+                  }
+                },
+                "required": ["email", "password"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/signUp/verify-otp": {
+      "post": {
+        "summary": "Verify OTP and complete sign up",
+        "description": "Validates the OTP and completes account creation. Access and refresh tokens are set as cookies.",
+        "tags": ["Auth"],
+        "responses": {
+          "201": {
+            "description": "Account created. Tokens set as cookies."
+          },
+          "400": {
+            "description": "Invalid or expired OTP"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "otp": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6
+                  }
+                },
+                "required": ["otp"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refreshToken": {
+      "post": {
+        "summary": "Refresh access token",
+        "description": "Issues a new access/refresh token pair using a valid refresh token.",
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "New access and refresh tokens returned."
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Session expired. Please sign in again."
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshTokenFromCookie": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["refreshTokenFromCookie"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/getCoreToken": {
+      "get": {
+        "summary": "Get core service JWT",
+        "description": "Returns a signed JWT for the downstream core service, including userId, inventoryId, and role.",
+        "tags": ["Auth"],
+        "responses": {
+          "200": {
+            "description": "Core JWT token payload returned."
+          },
+          "401": {
+            "description": "Not authenticated or no active session."
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/inventory/create-inventory": {
+      "post": {
+        "summary": "Create a new inventory",
+        "description": "Creates a new inventory and stores the inventoryId in a cookie.",
+        "tags": ["Inventory"],
+        "responses": {
+          "201": {
+            "description": "Inventory created successfully."
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "500": {
+            "description": "Failed to create inventory"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inventory/join-inventory": {
+      "post": {
+        "summary": "Join an inventory by code",
+        "description": "Joins an existing inventory using its unique code and stores the inventoryId in a cookie.",
+        "tags": ["Inventory"],
+        "responses": {
+          "200": {
+            "description": "Joined inventory successfully."
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "No inventory found with this code."
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                },
+                "required": ["code"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

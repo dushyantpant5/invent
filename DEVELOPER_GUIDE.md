@@ -25,6 +25,7 @@ Welcome to the project. This document explains how the codebase is structured, h
 17. [Automated Enforcement — How Rules Are Enforced](#17-automated-enforcement--how-rules-are-enforced)
 18. [Known Limitations and Outstanding Items](#18-known-limitations-and-outstanding-items)
 19. [Common Mistakes to Avoid](#19-common-mistakes-to-avoid)
+20. [API Documentation — OpenAPI and Postman](#20-api-documentation--openapi-and-postman)
 
 ---
 
@@ -1257,3 +1258,176 @@ These are known issues in the codebase that have not been resolved yet. Do not w
 | Writing a try/catch inside a route handler                            | `withErrorHandling` does this — routes should have no try/catch                               |
 | Creating a new query key string without adding it to `query-keys.ts`  | Always add to `query-keys.ts` first                                                           |
 | Passing 6 separate arguments to a function                            | Use a DTO object — it's cleaner and easier to extend                                          |
+
+---
+
+## 20. API Documentation — OpenAPI and Postman
+
+The project uses an automated OpenAPI 3.0.3 spec generator. It derives request body schemas directly from the Zod validators in `src/validators/index.ts`, so there is no duplication — updating a Zod schema automatically updates the spec on the next run.
+
+### Files
+
+```
+src/openapi/
+├── openapi.config.ts         — declares all routes: path, method, summary, tags, Zod schema reference, responses
+└── openapi.generator.ts      — converts config to OpenAPI JSON and writes the output file
+
+src/app/api/docs/route.ts         — GET /api/docs — serves openapi.json (dev only, 404 in production)
+src/app/api-docs/page.tsx         — server component — calls notFound() in production
+src/app/api-docs/ApiDocsClient.tsx — client component — renders Swagger UI (only mounted in dev)
+
+openapi/                      — generated output (do not edit manually)
+├── openapi.json
+└── postman-collection.json
+```
+
+### Commands
+
+```bash
+# Generate the OpenAPI spec
+npm run generate:openapi   # → openapi/openapi.json
+
+# Generate the Postman collection from the spec
+npm run generate:postman   # → openapi/postman-collection.json
+```
+
+Run `generate:openapi` first. `generate:postman` reads the JSON file it produces.
+
+---
+
+### How the generator works
+
+1. `openapi.config.ts` exports a `routes` array. Each entry declares:
+   - `path` — the URL path (e.g. `/api/auth/signIn`)
+   - `method` — HTTP verb
+   - `summary` and optional `description`
+   - `tags` — groups routes in Swagger UI / Postman (`Auth`, `Inventory`)
+   - `requestBody` — a Zod schema from `src/validators/index.ts` (optional for GET routes)
+   - `responses` — a map of HTTP status codes to descriptions
+
+2. `openapi.generator.ts` reads the config, calls `zodToJsonSchema()` on each `requestBody` schema, and assembles the full OpenAPI object. It then writes `openapi/openapi.json`.
+
+3. `generate:postman` calls the `openapi2postmanv2` CLI on `openapi.json` and writes `openapi/postman-collection.json`.
+
+---
+
+### Viewing the spec in a browser (Swagger UI)
+
+The project ships a built-in Swagger UI page. No external tool or install required.
+
+**Built-in Swagger UI (default — development only)**
+
+1. Run `npm run generate:openapi` to produce `openapi/openapi.json`
+2. Start the dev server: `npm run dev`
+3. Open `http://localhost:3000/api-docs`
+
+The page renders the full interactive Swagger UI, sourcing the spec from the `/api/docs` JSON endpoint at runtime. You can read all endpoints, inspect request/response schemas, and send live requests directly from the browser.
+
+> **These routes are blocked in production.** Both `/api-docs` and `/api/docs` return a 404 in any environment where `NODE_ENV !== 'development'`. `/api-docs` is statically pre-rendered as a 404 page at build time. `/api/docs` returns a 404 JSON response at request time. No API internals are exposed in production.
+
+How it works:
+
+```
+/api-docs  (src/app/api-docs/page.tsx)
+  └─ server component: calls notFound() unless NODE_ENV === 'development'
+  └─ renders ApiDocsClient.tsx (Swagger UI) in development only
+       └─ fetches spec from
+/api/docs  (src/app/api/docs/route.ts)
+  └─ returns 404 unless NODE_ENV === 'development'
+  └─ reads openapi/openapi.json from disk at request time in development
+```
+
+Because `/api/docs` reads the file at request time (not at build time), updating `openapi/openapi.json` by re-running `generate:openapi` is reflected immediately on the next page refresh — no rebuild needed.
+
+**Option B — VS Code extension (offline, no dev server needed)**
+
+1. Install the **OpenAPI (Swagger) Editor** extension in VS Code (`42crunch.vscode-openapi`)
+2. Open `openapi/openapi.json` in VS Code
+3. Click the preview icon in the top-right corner of the editor (or press `Shift+Opt+P`)
+4. Swagger UI renders inline inside VS Code
+
+**Option C — Swagger Editor online**
+
+1. Open [https://editor.swagger.io](https://editor.swagger.io)
+2. Click **File → Import file** and select `openapi/openapi.json`
+
+---
+
+### Importing into Postman
+
+**From the Postman collection file (generated)**
+
+1. Run both scripts:
+   ```bash
+   npm run generate:openapi
+   npm run generate:postman
+   ```
+2. Open Postman → click **Import** (top left)
+3. Select `openapi/postman-collection.json`
+4. The full collection imports with all endpoints grouped by tag (Auth, Inventory)
+
+**From the OpenAPI JSON file directly**
+
+1. Open Postman → click **Import**
+2. Select `openapi/openapi.json`
+3. Postman auto-generates the collection from the spec
+
+Either method produces the same result. The `postman-collection.json` file is pre-converted and works offline without Postman needing to parse the spec itself.
+
+---
+
+### Adding a new route to the spec
+
+When you add a new API route (following the checklist in section 15), register it in `src/openapi/openapi.config.ts`:
+
+```ts
+// src/openapi/openapi.config.ts
+import { createProductSchema } from '../validators'; // import the Zod schema
+
+// Add an entry to the routes array:
+{
+  path: '/api/products/create',
+  method: 'post',
+  summary: 'Create a product',
+  description: 'Creates a new product in the active inventory.',
+  tags: ['Products'],          // shown as a group in Swagger UI and Postman
+  requestBody: createProductSchema,  // Zod schema — auto-converted to JSON Schema
+  responses: {
+    201: { description: 'Product created successfully.' },
+    400: { description: 'Validation error' },
+    401: { description: 'Not authenticated' },
+    500: { description: 'Internal server error' },
+  },
+},
+```
+
+Then regenerate:
+
+```bash
+npm run generate:openapi
+npm run generate:postman
+```
+
+The spec and Postman collection update automatically. No other files need to change.
+
+**If you add a new tag group** (e.g. `Products`), also add it to the `tags` export in `openapi.config.ts`:
+
+```ts
+export const tags = [
+  { name: 'Auth', description: 'Authentication and session management' },
+  { name: 'Inventory', description: 'Inventory management' },
+  { name: 'Products', description: 'Product management' }, // add here
+];
+```
+
+---
+
+### Design principle — Zod is the single source of truth
+
+The generator never duplicates schema definitions. Request body schemas come directly from the same Zod validators used at runtime for server-side validation. This means:
+
+- If you add a field to `createInventorySchema`, the OpenAPI spec reflects it automatically on next run
+- If you tighten a constraint (e.g. `max(50)` instead of `max(100)`), the spec reflects it
+- There is no separate YAML or JSON schema to keep in sync
+
+**Never hand-write JSON Schema in the config file.** Always reference a Zod schema from `src/validators/index.ts`. If a schema does not exist yet, add it to validators first.
