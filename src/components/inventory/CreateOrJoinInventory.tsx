@@ -19,7 +19,8 @@ export default function JoinCreateInventory({ createInventory, joinInventory }: 
 
   const handleJoin = () => {
     console.log('code', inventoryCode);
-    joinInventory(inventoryCode);
+    const data = joinInventory(inventoryCode);
+    console.log('data', data);
     // TODO: Join inventory with code
     console.log('Joining inventory with code:', inventoryCode);
   };
